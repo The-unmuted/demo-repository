@@ -1,34 +1,45 @@
-import { useState, useRef, useEffect } from "react";
+/**
+ * Community page — three tabs:
+ *   身份  → ZKP anonymous identity
+ *   预警  → Nearby geo-alert zones
+ *   支援  → Supporter mode (opt-in, see requests, accept → E2E chat)
+ */
+
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShieldCheck, MapPin, MessageCircle, Loader2,
-  RefreshCw, Plus, ArrowLeft, Send, LogOut,
-  CheckCircle2, Copy, AlertTriangle,
+  ShieldCheck, MapPin, HandHeart, Loader2,
+  RefreshCw, CheckCircle2, Copy, AlertTriangle,
+  ArrowLeft, Send, Lock, Clock, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useZKPIdentity } from "@/hooks/useZKPIdentity";
 import { useGeoAlert } from "@/hooks/useGeoAlert";
-import { useP2PChat } from "@/hooks/useP2PChat";
 import { riskLabel, riskBg, timeAgo } from "@/lib/geoAlert";
 import type { IdentityCategory } from "@/lib/zkpIdentity";
+import {
+  HELP_TYPE_CONFIG, SUPPORT_TYPE_CONFIG,
+  type HelpRequest,
+  isSupporterMode, setSupporterMode, subscribeHelpRequests,
+} from "@/lib/supportNetwork";
+import { sendMessage, subscribeRoom, type ChatMessage } from "@/lib/p2pChat";
 
-// ── Inner tab type ─────────────────────────────────────────────────────────────
+// ── Tab type ───────────────────────────────────────────────────────────────────
 
-type InnerTab = "identity" | "alerts" | "chat";
+type InnerTab = "identity" | "alerts" | "support";
 
 const INNER_TABS: { id: InnerTab; label: string; icon: React.ReactNode }[] = [
   { id: "identity", label: "身份",  icon: <ShieldCheck className="h-4 w-4" /> },
   { id: "alerts",   label: "预警",  icon: <MapPin       className="h-4 w-4" /> },
-  { id: "chat",     label: "聊天",  icon: <MessageCircle className="h-4 w-4" /> },
+  { id: "support",  label: "支援",  icon: <HandHeart    className="h-4 w-4" /> },
 ];
 
-// ── Main page ──────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function CommunityPage() {
   const [tab, setTab] = useState<InnerTab>("identity");
   const zkp           = useZKPIdentity();
   const geo           = useGeoAlert();
-  const chat          = useP2PChat(zkp.alias ?? "匿名用户");
 
   return (
     <div className="flex flex-1 flex-col">
@@ -49,7 +60,6 @@ export default function CommunityPage() {
         ))}
       </div>
 
-      {/* Tab content */}
       <div className="flex flex-1 flex-col overflow-y-auto">
         <AnimatePresence mode="wait">
           {tab === "identity" && (
@@ -58,8 +68,8 @@ export default function CommunityPage() {
           {tab === "alerts" && (
             <TabPane key="alerts"><AlertsTab geo={geo} /></TabPane>
           )}
-          {tab === "chat" && (
-            <TabPane key="chat"><ChatTab chat={chat} alias={zkp.alias ?? "匿名用户"} /></TabPane>
+          {tab === "support" && (
+            <TabPane key="support"><SupporterTab zkp={zkp} /></TabPane>
           )}
         </AnimatePresence>
       </div>
@@ -81,7 +91,7 @@ function TabPane({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Identity Tab ───────────────────────────────────────────────────────────────
+// ── Identity Tab (unchanged from 3.2) ─────────────────────────────────────────
 
 function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
   const [category, setCategory] = useState<IdentityCategory>("female");
@@ -95,7 +105,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
   if (zkp.identity) {
     return (
       <div className="space-y-4">
-        {/* Badge */}
         <div className="rounded-2xl border border-sos-success/30 bg-sos-success/6 p-5 space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sos-success/15 text-2xl">
@@ -112,7 +121,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
             </div>
           </div>
 
-          {/* Commitment hash */}
           <div className="rounded-xl bg-card px-3 py-2.5 space-y-1">
             <p className="text-[11px] font-semibold text-muted-foreground">承诺哈希（公开）</p>
             <div className="flex items-center gap-2">
@@ -126,7 +134,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
             </div>
           </div>
 
-          {/* Nullifier */}
           <div className="rounded-xl bg-card px-3 py-2.5 space-y-1">
             <p className="text-[11px] font-semibold text-muted-foreground">空值符（防重复）</p>
             <p className="font-mono text-xs text-foreground">
@@ -139,7 +146,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
           </p>
         </div>
 
-        {/* Self-verify */}
         <button
           onClick={async () => {
             const ok = await zkp.verify();
@@ -169,7 +175,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
         </p>
       </div>
 
-      {/* Category picker */}
       <div className="grid grid-cols-2 gap-3">
         {(["female", "local"] as IdentityCategory[]).map(cat => (
           <button
@@ -205,7 +210,6 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
         生成承诺证明
       </button>
 
-      {/* How it works */}
       <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground">工作原理</p>
         {[
@@ -215,7 +219,10 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
         ].map(([icon, title, desc]) => (
           <div key={title} className="flex items-start gap-2 text-xs">
             <span>{icon}</span>
-            <span><span className="font-semibold text-foreground">{title}</span><span className="text-muted-foreground"> — {desc}</span></span>
+            <span>
+              <span className="font-semibold text-foreground">{title}</span>
+              <span className="text-muted-foreground"> — {desc}</span>
+            </span>
           </div>
         ))}
       </div>
@@ -223,7 +230,7 @@ function IdentityTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
   );
 }
 
-// ── Alerts Tab ─────────────────────────────────────────────────────────────────
+// ── Alerts Tab (unchanged from 3.2) ───────────────────────────────────────────
 
 function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
   return (
@@ -236,7 +243,7 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
         <button
           onClick={() => geo.refresh()}
           disabled={geo.status === "locating"}
-          className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-foreground disabled:opacity-50 active:scale-95 transition-transform"
+          className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium disabled:opacity-50 active:scale-95 transition-transform"
         >
           {geo.status === "locating"
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -251,8 +258,7 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
             onClick={() => geo.refresh()}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground active:scale-95 transition-transform"
           >
-            <MapPin className="h-4 w-4" />
-            获取附近预警
+            <MapPin className="h-4 w-4" />获取附近预警
           </button>
           <button
             onClick={() => geo.refresh(true)}
@@ -277,10 +283,7 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
         <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-center space-y-2">
           <AlertTriangle className="mx-auto h-6 w-6 text-primary" />
           <p className="text-sm text-foreground">{geo.error}</p>
-          <button
-            onClick={() => geo.refresh(true)}
-            className="text-xs text-primary underline"
-          >
+          <button onClick={() => geo.refresh(true)} className="text-xs text-primary underline">
             改用演示数据
           </button>
         </div>
@@ -293,7 +296,6 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
               📍 已定位 · 匿名化处理后查询
             </p>
           )}
-
           {geo.alerts.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
               <CheckCircle2 className="h-8 w-8 text-sos-success" />
@@ -306,10 +308,7 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
                 发现 <span className="font-bold text-foreground">{geo.alerts.length}</span> 个预警区域
               </p>
               {geo.alerts.map(alert => (
-                <div
-                  key={alert.zoneHash}
-                  className={`rounded-xl border p-4 space-y-2 ${riskBg(alert.riskLevel)}`}
-                >
+                <div key={alert.zoneHash} className={`rounded-xl border p-4 space-y-2 ${riskBg(alert.riskLevel)}`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-sm font-bold ${alert.riskLevel === "medium" ? "text-sos-offline" : "text-primary"}`}>
                       {riskLabel(alert.riskLevel)}
@@ -327,7 +326,6 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
               ))}
             </>
           )}
-
           <button
             onClick={() => geo.refresh()}
             className="w-full rounded-xl border border-border bg-card py-2.5 text-xs font-medium text-muted-foreground active:scale-95 transition-transform"
@@ -340,57 +338,117 @@ function AlertsTab({ geo }: { geo: ReturnType<typeof useGeoAlert> }) {
   );
 }
 
-// ── Chat Tab ───────────────────────────────────────────────────────────────────
+// ── Supporter Tab ──────────────────────────────────────────────────────────────
 
-function ChatTab({ chat, alias }: { chat: ReturnType<typeof useP2PChat>; alias: string }) {
-  const [roomInput, setRoomInput] = useState("");
-  const [msgInput, setMsgInput]   = useState("");
-  const bottomRef                  = useRef<HTMLDivElement>(null);
+function SupporterTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
+  const [isSupporter, setIsSupporter] = useState(() => isSupporterMode());
+  const [requests,    setRequests]    = useState<HelpRequest[]>([]);
+  const [session,     setSession]     = useState<HelpRequest | null>(null);
+  const [messages,    setMessages]    = useState<ChatMessage[]>([]);
+  const [msgInput,    setMsgInput]    = useState("");
+  const [sending,     setSending]     = useState(false);
+  const unsubReqRef  = useRef<(() => void) | null>(null);
+  const unsubChatRef = useRef<(() => void) | null>(null);
+  const bottomRef    = useRef<HTMLDivElement>(null);
+  const alias        = zkp.alias ?? "支援者";
+
+  const handleToggle = (val: boolean) => {
+    setIsSupporter(val);
+    setSupporterMode(val);
+    if (!val) { unsubReqRef.current?.(); setRequests([]); }
+  };
+
+  useEffect(() => {
+    if (!isSupporter) return;
+    unsubReqRef.current = subscribeHelpRequests((req) => {
+      setRequests(prev => {
+        if (prev.some(r => r.id === req.id)) return prev;
+        return [req, ...prev].slice(0, 10);
+      });
+    });
+    return () => { unsubReqRef.current?.(); };
+  }, [isSupporter]);
+
+  useEffect(() => {
+    if (!session) { unsubChatRef.current?.(); return; }
+    unsubChatRef.current?.();
+    setMessages([]);
+    unsubChatRef.current = subscribeRoom(session.roomCode, alias, (msg) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, msg].sort((a, b) => a.timestamp - b.timestamp);
+      });
+    });
+    return () => { unsubChatRef.current?.(); };
+  }, [session?.roomCode, alias]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat.messages]);
+  }, [messages]);
 
-  if (chat.activeRoom) {
+  const handleSend = async () => {
+    if (!session || !msgInput.trim()) return;
+    setSending(true);
+    try {
+      await sendMessage(session.roomCode, alias, msgInput.trim());
+      setMsgInput("");
+    } finally { setSending(false); }
+  };
+
+  // ── Active support session ─────────────────────────────────────────────────
+  if (session) {
+    const typeConfig = HELP_TYPE_CONFIG.find(h => h.id === session.helpType);
+    const minsLeft   = Math.max(0, Math.ceil((session.expiresAt - Date.now()) / 60000));
+
     return (
       <div className="flex flex-1 flex-col -mx-4 -mt-4">
-        {/* Chat header */}
+        {/* Header */}
         <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3">
-          <button onClick={() => chat.setActiveRoom(null)} className="text-muted-foreground">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-foreground">房间 #{chat.activeRoom}</p>
-            <p className="text-xs text-muted-foreground">以 <span className="font-semibold">{alias}</span> 身份聊天</p>
-          </div>
           <button
-            onClick={() => { chat.exitRoom(chat.activeRoom!); toast("已离开房间"); }}
+            onClick={() => { unsubChatRef.current?.(); setSession(null); }}
             className="text-muted-foreground"
           >
-            <LogOut className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
+          <span className="text-xl">{typeConfig?.icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-bold text-foreground">
+              支援对话 · {typeConfig?.label}
+            </p>
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>{minsLeft} 分钟后过期</span>
+              <span className="mx-1">·</span>
+              <Lock className="h-3 w-3" />
+              <span>加密</span>
+            </div>
+          </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-          {chat.messages.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
-              <MessageCircle className="h-8 w-8 opacity-30" />
-              <p className="text-xs">等待消息…</p>
-              <p className="text-[11px] text-center opacity-60">所有消息端到端加密，Gun.js P2P 传输</p>
+        <div className="flex-1 overflow-y-auto space-y-3 px-4 py-4">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-card border border-border px-4 py-1.5 text-[11px] text-muted-foreground">
+              🤝 你作为支援者加入了此对话
+            </div>
+          </div>
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground text-center">
+              <Lock className="h-8 w-8 opacity-20" />
+              <p className="text-sm">等待求助方发送消息…</p>
             </div>
           )}
-          {chat.messages.map(msg => (
+          {messages.map(msg => (
             <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.isMine ? "items-end" : "items-start"}`}>
-              <span className="text-[11px] text-muted-foreground px-1">{msg.alias}</span>
+              <span className="px-1 text-[11px] text-muted-foreground">{msg.alias}</span>
               <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${
                 msg.isMine
                   ? "rounded-tr-sm bg-primary text-primary-foreground"
-                  : "rounded-tl-sm bg-card text-foreground border border-border"
+                  : "rounded-tl-sm border border-border bg-card text-foreground"
               }`}>
                 {msg.text}
               </div>
-              <span className="text-[10px] text-muted-foreground/50 px-1">
+              <span className="px-1 text-[10px] text-muted-foreground/50">
                 {new Date(msg.timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
@@ -399,119 +457,150 @@ function ChatTab({ chat, alias }: { chat: ReturnType<typeof useP2PChat>; alias: 
         </div>
 
         {/* Input */}
-        <div className="shrink-0 flex gap-2 border-t border-border bg-card px-4 py-3"
-             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+        <div
+          className="shrink-0 flex gap-2 border-t border-border bg-card px-4 py-3"
+          style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+        >
           <input
             value={msgInput}
             onChange={e => setMsgInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="输入消息…"
-            className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            placeholder="发送支援消息…"
+            className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
           />
           <button
             onClick={handleSend}
-            disabled={chat.sending || !msgInput.trim()}
+            disabled={sending || !msgInput.trim()}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40 active:scale-95 transition-transform"
           >
-            {chat.sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
     );
   }
 
-  function handleSend() {
-    if (!msgInput.trim()) return;
-    chat.send(msgInput);
-    setMsgInput("");
-  }
-
+  // ── Supporter list view ────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
-      <div>
-        <h3 className="font-bold text-foreground">匿名互助聊天</h3>
-        <p className="text-xs text-muted-foreground">端到端加密 · P2P 传输 · 身份匿名</p>
-      </div>
-
-      {/* Join by code */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground">输入房间码加入</p>
-        <div className="flex gap-2">
-          <input
-            value={roomInput}
-            onChange={e => setRoomInput(e.target.value.toLowerCase())}
-            placeholder="房间码（如：abc123）"
-            maxLength={12}
-            className="flex-1 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none"
-          />
-          <button
-            onClick={() => { chat.joinRoom(roomInput); setRoomInput(""); }}
-            disabled={!roomInput.trim()}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            加入
-          </button>
+    <div className="space-y-4">
+      {/* Toggle card */}
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+        <div>
+          <p className="font-bold text-foreground">成为支援者</p>
+          <p className="text-xs text-muted-foreground">接收附近的匿名求助请求</p>
         </div>
+        <button
+          onClick={() => handleToggle(!isSupporter)}
+          className={`relative h-7 w-12 rounded-full transition-colors duration-200 ${
+            isSupporter ? "bg-primary" : "bg-border"
+          }`}
+          aria-label="切换支援者模式"
+        >
+          <span
+            className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              isSupporter ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
       </div>
 
-      {/* Create new room */}
-      <button
-        onClick={() => {
-          const code = chat.createRoom();
-          toast.success(`已创建房间 #${code}，将房间码分享给对方`);
-        }}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-semibold text-foreground active:scale-95 transition-transform"
-      >
-        <Plus className="h-4 w-4" />
-        创建新房间
-      </button>
-
-      {/* Room list */}
-      {chat.rooms.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">已加入的房间</p>
-          {chat.rooms.map(room => (
-            <div
-              key={room.code}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
-            >
-              <button
-                onClick={() => chat.setActiveRoom(room.code)}
-                className="flex flex-1 items-center gap-3 text-left"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-base">
-                  💬
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">#{room.code}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(room.joinedAt).toLocaleDateString("zh-CN")}
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={() => { chat.exitRoom(room.code); toast("已离开房间"); }}
-                className="text-muted-foreground"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
+      {/* ZKP identity note */}
+      {isSupporter && !zkp.identity && (
+        <div className="rounded-xl border border-primary/30 bg-primary/8 px-4 py-3 text-xs text-muted-foreground">
+          💡 前往「身份」标签生成匿名身份，聊天时将显示你的别名而非真实信息
         </div>
       )}
 
-      {/* Security note */}
-      <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-1.5">
-        <p className="text-xs font-semibold text-muted-foreground">安全说明</p>
-        {[
-          "🔒 消息 AES-256-GCM 加密后才发送",
-          "🌐 Gun.js P2P 传输，无中心服务器",
-          "👤 别名由你的 ZKP 身份自动生成",
-          "🗝️ 房间码即密钥，不要在不安全的渠道分享",
-        ].map(t => (
-          <p key={t} className="text-xs text-muted-foreground">{t}</p>
-        ))}
-      </div>
+      {/* Request list */}
+      {isSupporter && (
+        <div className="space-y-3">
+          {requests.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+              <div className="relative">
+                <Users className="h-10 w-10 opacity-20" />
+                <motion.div
+                  className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary"
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </div>
+              <p className="text-sm">正在监听附近求助…</p>
+              <p className="text-xs opacity-60 text-center">
+                当有人发出求助请求时，你会在这里看到
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-semibold text-muted-foreground">
+                {requests.length} 个待响应请求
+              </p>
+              {requests.map(req => {
+                const typeConfig    = HELP_TYPE_CONFIG.find(h => h.id === req.helpType);
+                const minsRemaining = Math.max(0, Math.ceil((req.expiresAt - Date.now()) / 60000));
+                return (
+                  <div key={req.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{typeConfig?.icon ?? "⚠️"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-foreground text-sm">{typeConfig?.label}</p>
+                        <p className="text-xs text-muted-foreground">📍 {req.locationHint}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {minsRemaining} 分钟
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {req.supportTypes.map(st => {
+                        const sc = SUPPORT_TYPE_CONFIG.find(s => s.id === st);
+                        return (
+                          <span
+                            key={st}
+                            className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs"
+                          >
+                            {sc?.icon} {sc?.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground">
+                      ⚠️ 你看不到对方的真实身份或精确位置
+                    </p>
+
+                    <button
+                      onClick={() => {
+                        setSession(req);
+                        setRequests(prev => prev.filter(r => r.id !== req.id));
+                        toast.success("已接受请求，正在建立加密通道");
+                      }}
+                      className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground active:scale-95 transition-transform"
+                    >
+                      接受请求
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Explainer when off */}
+      {!isSupporter && (
+        <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">成为支援者须知</p>
+          {[
+            "🔒 求助方匿名发送，你看不到对方真实身份",
+            "📍 仅显示大致区域，非精确位置",
+            "⏱️ 对话临时存在，2 小时后自动过期",
+            "💙 你的匿名身份将作为别名显示在对话中",
+            "🛡️ 随时可以退出任何对话",
+          ].map(t => (
+            <p key={t} className="text-xs text-muted-foreground">{t}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
