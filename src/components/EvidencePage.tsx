@@ -11,14 +11,15 @@ import { loadSOSHistory } from "@/lib/localStorage";
 import { shortenHash } from "@/hooks/useWallet";
 import { formatBytes } from "@/lib/evidenceCrypto";
 import { SOLANA_NETWORK } from "@/lib/evidenceContract";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 function getMimeLabel(mime: string) {
-  if (mime.startsWith("image/")) return "图片";
-  if (mime.startsWith("video/")) return "视频";
-  if (mime.startsWith("audio/")) return "音频";
-  return "文件";
+  if (mime.startsWith("image/")) return "图片 Image";
+  if (mime.startsWith("video/")) return "视频 Video";
+  if (mime.startsWith("audio/")) return "音频 Audio";
+  return "文件 File";
 }
 
 function getMimeIcon(mime: string) {
@@ -29,7 +30,7 @@ function getMimeIcon(mime: string) {
 }
 
 function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).then(() => toast.success("已复制"));
+  navigator.clipboard.writeText(text).then(() => toast.success("已复制 Copied"));
 }
 
 function formatTs(ts: number) {
@@ -276,7 +277,7 @@ function useAudioRecorder(onBlob: (blob: Blob) => void) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function EvidencePage() {
+export default function EvidencePage({ language }: { language: AppLanguage }) {
   const vault = useEvidenceVault();
   const solana = useSolanaWallet();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -306,14 +307,20 @@ export default function EvidencePage() {
 
       {/* ── Header ── */}
       <div className="pt-1">
-        <h2 className="text-lg font-bold text-foreground">一键存证</h2>
+        <h2 className="text-lg font-bold text-foreground">
+          {copyFor(language, "One-Tap Evidence", "一键存证")}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          AES-256 本地加密 → Arweave 永久存储 → Solana 链上时间戳
+          {copyFor(
+            language,
+            "Local encryption → permanent storage → on-chain timestamp",
+            "AES-256 本地加密 → Arweave 永久存储 → Solana 链上时间戳"
+          )}
         </p>
       </div>
 
       {/* ── Phantom wallet banner ── */}
-      <PhantomBanner solana={solana} />
+      <PhantomBanner solana={solana} language={language} />
 
       {/* ── Capture buttons (idle only) ── */}
       <AnimatePresence mode="wait">
@@ -328,7 +335,7 @@ export default function EvidencePage() {
             {/* Photo */}
             <CaptureButton
               icon={<Camera className="h-7 w-7" />}
-              label="拍照"
+              label={copyFor(language, "Photo", "拍照")}
               color="text-blue-400"
               bgColor="bg-blue-500/10 border-blue-500/20"
               onClick={() => photoInputRef.current?.click()}
@@ -337,7 +344,7 @@ export default function EvidencePage() {
             {/* Video */}
             <CaptureButton
               icon={<Video className="h-7 w-7" />}
-              label="录像"
+              label={copyFor(language, "Video", "录像")}
               color="text-purple-400"
               bgColor="bg-purple-500/10 border-purple-500/20"
               onClick={() => videoInputRef.current?.click()}
@@ -352,7 +359,7 @@ export default function EvidencePage() {
                   <Mic className="h-7 w-7" />
                 )
               }
-              label={audioRecorder.recording ? `${audioRecorder.seconds}s` : "录音"}
+              label={audioRecorder.recording ? `${audioRecorder.seconds}s` : copyFor(language, "Audio", "录音")}
               color={audioRecorder.recording ? "text-red-400" : "text-green-400"}
               bgColor={
                 audioRecorder.recording
@@ -393,20 +400,22 @@ export default function EvidencePage() {
             exit={{ opacity: 0 }}
             className="rounded-2xl border border-border bg-card p-5 space-y-4"
           >
-            <p className="text-sm font-bold text-foreground text-center">正在处理...</p>
+            <p className="text-sm font-bold text-foreground text-center">
+              {copyFor(language, "Processing...", "正在处理...")}
+            </p>
             <StepRow
-              label="AES-256-GCM 本地加密"
-              sublabel="在设备端完成，数据不离开本机"
+              label={copyFor(language, "AES-256-GCM Local encryption", "AES-256-GCM 本地加密")}
+              sublabel={copyFor(language, "Done on your device. Data never leaves unencrypted.", "在设备端完成，数据不离开本机")}
               status={vault.steps.encrypting}
             />
             <StepRow
-              label="上传至 Arweave 永久存储"
-              sublabel="加密原件，任何人无法解读内容"
+              label={copyFor(language, "Upload to Arweave permanent storage", "上传至 Arweave 永久存储")}
+              sublabel={copyFor(language, "Only encrypted originals are stored.", "加密原件，任何人无法解读内容")}
               status={vault.steps.uploading}
             />
             <StepRow
-              label="Solana 链上时间戳"
-              sublabel="哈希通过 Memo Program 写入 Solana，不可篡改"
+              label={copyFor(language, "Solana on-chain timestamp", "Solana 链上时间戳")}
+              sublabel={copyFor(language, "The hash is written through Solana Memo Program.", "哈希通过 Memo Program 写入 Solana，不可篡改")}
               status={vault.steps.anchoring}
             />
           </motion.div>
@@ -432,13 +441,15 @@ export default function EvidencePage() {
             exit={{ opacity: 0 }}
             className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 space-y-3"
           >
-            <p className="text-sm font-bold text-destructive">存证失败</p>
+            <p className="text-sm font-bold text-destructive">
+              {copyFor(language, "Evidence failed", "存证失败")}
+            </p>
             <p className="text-xs text-muted-foreground">{vault.error}</p>
             <button
               onClick={vault.reset}
               className="w-full rounded-xl bg-card border border-border py-2.5 text-sm font-medium text-foreground"
             >
-              重试
+              {copyFor(language, "Retry", "重试")}
             </button>
           </motion.div>
         )}
@@ -447,12 +458,14 @@ export default function EvidencePage() {
       {/* ── How it works ── */}
       {vault.step === "idle" && (
         <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">工作原理</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            {copyFor(language, "How it works", "工作原理")}
+          </p>
           <div className="space-y-1.5">
             {[
-              ["🔒", "AES-256 加密", "文件在设备本地加密，密钥仅你持有"],
-              ["🌐", "Arweave 存储", "加密原件永久存储于去中心化网络"],
-              ["◎", "Solana 时间戳", "哈希经 Memo Program 写入 Solana，不可篡改"],
+              ["🔒", "AES-256 加密 Encryption", "文件在设备本地加密，密钥仅你持有"],
+              ["🌐", "Arweave 存储 Storage", "加密原件永久存储于去中心化网络"],
+              ["◎", "Solana 时间戳 Timestamp", "哈希经 Memo Program 写入 Solana，不可篡改"],
             ].map(([icon, title, desc]) => (
               <div key={title} className="flex items-start gap-2.5 text-xs">
                 <span>{icon}</span>
@@ -502,7 +515,7 @@ function CaptureButton({
 function VaultHistory({ records }: { records: import("@/lib/localStorage").VaultRecord[] }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-bold text-foreground">存证记录</h3>
+      <h3 className="text-sm font-bold text-foreground">存证记录 Evidence History</h3>
       {records.slice(0, 10).map((r) => (
         <div key={r.id} className="rounded-xl border border-border bg-card p-3 space-y-1.5">
           <div className="flex items-center gap-2">
@@ -549,7 +562,7 @@ function SOSHistory() {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-bold text-foreground">SOS 记录</h3>
+      <h3 className="text-sm font-bold text-foreground">SOS 记录 SOS History</h3>
       {history.slice(0, 5).map((rec, i) => (
         <div key={i} className="rounded-xl border border-border bg-card p-3 space-y-1">
           <div className="flex items-center gap-2">
@@ -585,7 +598,7 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
         <div className="flex items-center gap-2">
           <Wallet className="h-3.5 w-3.5 text-sos-success" />
           <span className="text-xs font-semibold text-sos-success">
-            Phantom 已连接
+            Phantom 已连接 Connected
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
             {shortenSolAddress(wallet.address)}
@@ -598,7 +611,7 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
           onClick={disconnect}
           className="text-[11px] text-muted-foreground underline"
         >
-          断开
+          断开 Disconnect
         </button>
       </div>
     );
@@ -611,10 +624,10 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
     >
       <Wallet className="h-4 w-4 text-muted-foreground" />
       {wallet.isPhantomInstalled
-        ? "连接 Phantom 钱包（真实上链）"
-        : "安装 Phantom 钱包"}
+        ? "连接 Phantom 钱包 Connect Phantom"
+        : "安装 Phantom 钱包 Install Phantom"}
       <span className="text-xs text-muted-foreground font-normal">
-        · 未连接时演示模式运行
+        · 未连接时演示模式运行 Demo mode when disconnected
       </span>
     </button>
   );

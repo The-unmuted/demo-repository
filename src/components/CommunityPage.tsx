@@ -28,10 +28,10 @@ import { sendMessage, subscribeRoom, type ChatMessage } from "@/lib/p2pChat";
 
 type InnerTab = "identity" | "alerts" | "support";
 
-const INNER_TABS: { id: InnerTab; label: string; icon: React.ReactNode }[] = [
-  { id: "identity", label: "身份",  icon: <ShieldCheck className="h-4 w-4" /> },
-  { id: "alerts",   label: "预警",  icon: <MapPin       className="h-4 w-4" /> },
-  { id: "support",  label: "支援",  icon: <HandHeart    className="h-4 w-4" /> },
+const INNER_TABS: { id: InnerTab; label: string; english: string; icon: React.ReactNode }[] = [
+  { id: "identity", label: "身份", english: "Identity", icon: <ShieldCheck className="h-4 w-4" /> },
+  { id: "alerts",   label: "预警", english: "Alerts", icon: <MapPin className="h-4 w-4" /> },
+  { id: "support",  label: "支援", english: "Support", icon: <HandHeart className="h-4 w-4" /> },
 ];
 
 // ── Page ───────────────────────────────────────────────────────────────────────
@@ -55,7 +55,9 @@ export default function CommunityPage() {
                 : "text-muted-foreground"
             }`}
           >
-            {t.icon}{t.label}
+            {t.icon}
+            <span>{t.label}</span>
+            <span className="text-[10px] font-normal opacity-80">{t.english}</span>
           </button>
         ))}
       </div>

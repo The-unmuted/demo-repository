@@ -211,7 +211,7 @@ export default function SOSButton({
             {state === "idle" && (
               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <span className="text-5xl font-black tracking-wider text-primary-foreground">SOS</span>
-                <span className="text-lg font-bold text-primary-foreground/90">紧急求救</span>
+                <span className="text-lg font-bold text-primary-foreground/90">紧急求救 Emergency</span>
               </motion.div>
             )}
             {state === "pressing" && (
@@ -223,13 +223,13 @@ export default function SOSButton({
             {state === "loading" && (
               <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <Loader2 className="h-14 w-14 animate-spin text-primary-foreground" />
-                <span className="text-sm font-medium text-primary-foreground/80">正在上链...</span>
+                <span className="text-sm font-medium text-primary-foreground/80">正在上链 Uploading...</span>
               </motion.div>
             )}
             {state === "success" && (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <Check className="h-16 w-16 text-primary-foreground" strokeWidth={3} />
-                <span className="text-lg font-bold text-primary-foreground">已安全存证</span>
+                <span className="text-lg font-bold text-primary-foreground">已安全存证 Secured</span>
                 {txHash && (
                   <a href={`https://testnet.snowtrace.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
                     className="font-mono text-xs text-primary-foreground/70 underline" onClick={(e) => e.stopPropagation()}>
@@ -241,8 +241,8 @@ export default function SOSButton({
             {state === "offline" && (
               <motion.div key="offline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <AlertTriangle className="h-14 w-14 text-background" />
-                <span className="text-base font-bold text-background">已本地存储</span>
-                <span className="text-xs text-background/70">等待网络恢复</span>
+                <span className="text-base font-bold text-background">已本地存储 Saved Offline</span>
+                <span className="text-xs text-background/70">等待网络恢复 Waiting for network</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -250,11 +250,11 @@ export default function SOSButton({
       </motion.button>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        {state === "idle" && "长按 3 秒触发"}
-        {state === "pressing" && "继续按住..."}
-        {state === "loading" && "正在获取位置并上链"}
-        {state === "success" && "存证已上链至 Avalanche"}
-        {state === "offline" && "离线，数据已暂存本地"}
+        {state === "idle" && "长按 3 秒触发 · Hold for 3 seconds"}
+        {state === "pressing" && "继续按住... · Keep holding"}
+        {state === "loading" && "正在获取位置并上链 · Getting location and uploading"}
+        {state === "success" && "存证已完成并安全保存 · Report secured"}
+        {state === "offline" && "离线，数据已暂存本地 · Offline, saved locally"}
       </p>
 
       <AnimatePresence>
@@ -264,7 +264,7 @@ export default function SOSButton({
             onClick={handleSafe}
             className="mt-6 rounded-full bg-sos-success px-8 py-3 text-base font-bold text-primary-foreground"
           >
-            我已安全
+            我已安全 I’m Safe
           </motion.button>
         )}
       </AnimatePresence>

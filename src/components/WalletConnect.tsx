@@ -1,50 +1,42 @@
-import { useWallet, shortenAddress } from "@/hooks/useWallet";
-import { Wallet, LogOut, AlertTriangle } from "lucide-react";
+import { useSolanaWallet, shortenSolAddress } from "@/hooks/useSolanaWallet";
+import { AppLanguage, copyFor } from "@/lib/locale";
+import { Wallet, LogOut } from "lucide-react";
 
 interface WalletConnectProps {
-  contractAddress: string;
-  walletHook: ReturnType<typeof useWallet>;
+  walletHook: ReturnType<typeof useSolanaWallet>;
+  language: AppLanguage;
 }
 
-export default function WalletConnect({ walletHook }: WalletConnectProps) {
-  const { wallet, connect, disconnect, switchToFuji } = walletHook;
+export default function WalletConnect({ walletHook, language }: WalletConnectProps) {
+  const { wallet, connect, disconnect } = walletHook;
 
   if (!wallet.isConnected) {
     return (
       <button
         onClick={connect}
-        className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent"
+        className="flex items-center gap-2 rounded-full border border-primary/20 bg-card/90 px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent"
       >
-        <Wallet className="h-4 w-4" />
-        连接钱包
+        <Wallet className="h-4 w-4 text-primary" />
+        <span className="hidden sm:inline">
+          {copyFor(language, "Connect Phantom", "连接 Phantom")}
+        </span>
+        <span className="sm:hidden">Phantom</span>
       </button>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
-      {!wallet.isCorrectNetwork && (
-        <button
-          onClick={switchToFuji}
-          className="flex items-center gap-1 rounded-lg bg-wallet-warning/20 px-2 py-1.5 text-xs font-medium text-wallet-warning transition-colors hover:bg-wallet-warning/30"
-        >
-          <AlertTriangle className="h-3 w-3" />
-          切换网络
-        </button>
-      )}
-      <div className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-2">
-        <div
-          className={`h-2 w-2 rounded-full ${
-            wallet.isCorrectNetwork ? "bg-wallet-connected" : "bg-wallet-warning"
-          }`}
-        />
+      <div className="flex items-center gap-1.5 rounded-full border border-wallet-connected/20 bg-wallet-connected/10 px-3 py-2">
+        <div className="h-2 w-2 rounded-full bg-wallet-connected" />
         <span className="font-mono text-xs text-secondary-foreground">
-          {shortenAddress(wallet.address!)}
+          {shortenSolAddress(wallet.address!)}
         </span>
       </div>
       <button
         onClick={disconnect}
-        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        aria-label={copyFor(language, "Disconnect Phantom", "断开 Phantom")}
       >
         <LogOut className="h-4 w-4" />
       </button>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,59 +6,59 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 92%;
+    --background: 240 44% 10%;
+    --foreground: 296 53% 95%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    --card: 245 38% 15%;
+    --card-foreground: 296 53% 95%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 245 38% 15%;
+    --popover-foreground: 296 53% 95%;
 
-    --primary: 0 85% 45%;
+    --primary: 320 100% 78%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 16%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 247 30% 19%;
+    --secondary-foreground: 296 38% 90%;
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 246 28% 17%;
+    --muted-foreground: 268 21% 70%;
 
-    --accent: 220 14% 18%;
-    --accent-foreground: 210 20% 92%;
+    --accent: 249 31% 22%;
+    --accent-foreground: 296 53% 95%;
 
-    --destructive: 0 85% 45%;
+    --destructive: 350 88% 67%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 0 85% 45%;
+    --border: 253 27% 24%;
+    --input: 253 27% 24%;
+    --ring: 276 100% 76%;
 
     --radius: 0.75rem;
 
     /* The Unmuted custom tokens */
-    --sos-default: 0 85% 43%;
-    --sos-pressing: 32 100% 50%;
-    --sos-success: 142 71% 45%;
-    --sos-offline: 45 93% 58%;
-    --sos-glow: 0 85% 45% / 0.4;
-    --sos-pressing-glow: 32 100% 50% / 0.4;
-    --sos-success-glow: 142 71% 45% / 0.3;
+    --sos-default: 320 100% 78%;
+    --sos-pressing: 271 100% 74%;
+    --sos-success: 155 55% 60%;
+    --sos-offline: 33 93% 67%;
+    --sos-glow: 320 100% 78% / 0.42;
+    --sos-pressing-glow: 271 100% 74% / 0.42;
+    --sos-success-glow: 155 55% 60% / 0.35;
 
-    --wallet-connected: 142 71% 45%;
-    --wallet-warning: 45 93% 58%;
+    --wallet-connected: 276 100% 76%;
+    --wallet-warning: 33 93% 67%;
 
-    --nav-active: 0 85% 45%;
-    --nav-inactive: 215 15% 40%;
+    --nav-active: 320 100% 80%;
+    --nav-inactive: 261 16% 61%;
 
-    --sidebar-background: 220 20% 7%;
-    --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 0 85% 45%;
+    --sidebar-background: 240 44% 10%;
+    --sidebar-foreground: 296 53% 95%;
+    --sidebar-primary: 320 100% 78%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 18%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 0 85% 45%;
+    --sidebar-accent: 249 31% 22%;
+    --sidebar-accent-foreground: 296 53% 95%;
+    --sidebar-border: 253 27% 24%;
+    --sidebar-ring: 276 100% 76%;
   }
 }
 
@@ -84,7 +84,11 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     /* Fill safe area with background color */
-    background-color: hsl(var(--background));
+    background:
+      radial-gradient(circle at 50% 15%, hsl(287 100% 72% / 0.18) 0%, transparent 28%),
+      radial-gradient(circle at 70% 35%, hsl(336 100% 78% / 0.14) 0%, transparent 24%),
+      linear-gradient(180deg, hsl(244 45% 12%) 0%, hsl(235 52% 7%) 100%);
+    font-family: "Outfit", "Noto Sans SC", sans-serif;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -94,6 +98,10 @@
     /* Constrain to phone width on desktop */
     max-width: 480px;
     margin: 0 auto;
+    background:
+      linear-gradient(180deg, hsl(245 34% 15% / 0.9), hsl(239 45% 10% / 0.96));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 0 0 1px hsl(255 27% 20%), 0 24px 80px hsl(240 70% 4% / 0.55);
   }
 
   /* Minimum 44×44px touch targets (Apple HIG / WCAG) */

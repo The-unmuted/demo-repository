@@ -59,14 +59,14 @@ export default function OfflineBanner({
     <div className="mx-4 mb-3 rounded-lg border border-sos-offline/30 bg-sos-offline/10 px-4 py-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-sos-offline">
-          您有 {count} 条未发送的安全存证
+          您有 {count} 条待同步记录 · {count} pending local reports
         </span>
         <button
           onClick={handleRetry}
           disabled={!canRetry || isRetrying}
           className="rounded-md bg-sos-offline/20 px-3 py-1 text-xs font-medium text-sos-offline transition-colors hover:bg-sos-offline/30 disabled:opacity-50"
         >
-          {isRetrying ? "补发中..." : "补发"}
+          {isRetrying ? "同步中..." : canRetry ? "立即同步" : "仅本地保存"}
         </button>
       </div>
     </div>

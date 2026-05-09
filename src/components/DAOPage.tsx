@@ -47,8 +47,8 @@ export default function DAOPage() {
       <div className="flex shrink-0 border-b border-border">
         {(
           [
-            { id: "proposals" as const, label: "提案投票" },
-            { id: "experts"   as const, label: "专家委员会" },
+            { id: "proposals" as const, label: "提案投票", english: "Proposals" },
+            { id: "experts"   as const, label: "专家委员会", english: "Experts" },
           ] as const
         ).map(t => (
           <button
@@ -60,7 +60,8 @@ export default function DAOPage() {
                 : "text-muted-foreground"
             }`}
           >
-            {t.label}
+            <span>{t.label}</span>
+            <span className="ml-1 text-[10px] font-normal opacity-80">{t.english}</span>
           </button>
         ))}
       </div>

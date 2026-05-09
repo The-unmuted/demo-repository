@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Contract } from "ethers";
 import { Loader2, AlertTriangle, Navigation, ExternalLink } from "lucide-react";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 interface MapPageProps {
   contract: Contract | null;
+  language: AppLanguage;
 }
 
 interface AlertRecord {
@@ -14,7 +16,7 @@ interface AlertRecord {
   caller: string;
 }
 
-export default function MapPage({ contract }: MapPageProps) {
+export default function MapPage({ contract, language }: MapPageProps) {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
@@ -83,19 +85,26 @@ export default function MapPage({ contract }: MapPageProps) {
     <div className="flex flex-1 flex-col px-4 pb-20">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">附近预警</h2>
+        <div>
+          <h2 className="text-lg font-bold text-foreground">
+            {copyFor(language, "Nearby Alerts", "附近预警")}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {copyFor(language, "Community alert activity around you", "你附近的社区预警动态")}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {selectedAlert && (
             <button
               onClick={() => setSelectedAlert(null)}
               className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/30"
             >
-              ← 回到我的位置
+              {copyFor(language, "← Back to me", "← 回到我的位置")}
             </button>
           )}
           {alerts.length > 0 && (
             <span className="rounded-full bg-sos/20 px-2.5 py-0.5 text-xs font-bold text-sos">
-              {alerts.length} 条活跃求救
+              {copyFor(language, `${alerts.length} active alerts`, `${alerts.length} 条活跃求救`)}
             </span>
           )}
         </div>
@@ -106,7 +115,9 @@ export default function MapPage({ contract }: MapPageProps) {
         {loading && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">正在定位...</span>
+            <span className="ml-2 text-sm text-muted-foreground">
+              {copyFor(language, "Locating...", "正在定位...")}
+            </span>
           </div>
         )}
 
@@ -140,7 +151,7 @@ export default function MapPage({ contract }: MapPageProps) {
         <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5 rounded-lg bg-background/80 px-3 py-2 text-xs backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full border-2 border-blue-400 bg-blue-500 shadow-[0_0_6px_1px_rgba(59,130,246,0.5)]" />
-            <span className="text-muted-foreground">我的位置</span>
+            <span className="text-muted-foreground">{copyFor(language, "My location", "我的位置")}</span>
           </div>
           {alerts.length > 0 && (
             <div className="flex items-center gap-2">
@@ -148,7 +159,7 @@ export default function MapPage({ contract }: MapPageProps) {
                 <span className="absolute inset-0 animate-ping rounded-full bg-sos/60" />
                 <span className="relative inline-block h-3 w-3 rounded-full border-2 border-white bg-sos shadow-[0_0_6px_1px_rgba(220,38,38,0.5)]" />
               </span>
-              <span className="text-muted-foreground">求救点</span>
+              <span className="text-muted-foreground">{copyFor(language, "SOS point", "求救点")}</span>
             </div>
           )}
         </div>
@@ -157,7 +168,9 @@ export default function MapPage({ contract }: MapPageProps) {
       {/* Floating alert list */}
       {alerts.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">点击可跳转到求救位置 ↓</p>
+          <p className="text-xs text-muted-foreground">
+            {copyFor(language, "Tap to focus on an alert", "点击可跳转到求救位置")}
+          </p>
           {alerts.map((a) => {
             const isActive = selectedAlert?.sosId === a.sosId;
             return (
@@ -194,7 +207,9 @@ export default function MapPage({ contract }: MapPageProps) {
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
-          {contract ? "附近暂无活跃求救信号" : "连接钱包后可查看链上预警"}
+          {contract
+            ? copyFor(language, "No active nearby alerts", "附近暂无活跃求救信号")
+            : copyFor(language, "Connect wallet to view alerts", "连接钱包后可查看链上预警")}
         </p>
       )}
     </div>

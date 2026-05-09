@@ -22,6 +22,7 @@ import {
 } from "@/lib/supportNetwork";
 import { sendMessage, subscribeRoom, type ChatMessage } from "@/lib/p2pChat";
 import { useZKPIdentity } from "@/hooks/useZKPIdentity";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,8 @@ export interface SOSPageProps {
   voiceDeterrent:    boolean;
   customAudioUrl:    string | null;
   saveCustomAudio:   (url: string) => void;
+  onAfterReport:     () => void;
+  language:          AppLanguage;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -109,6 +112,8 @@ export default function SOSPage(props: SOSPageProps) {
             <HomeView
               onHelp={() => go({ view: "help:type" })}
               onPanic={() => go({ view: "panic" })}
+              onAfterReport={props.onAfterReport}
+              language={props.language}
             />
           </Pane>
         )}
@@ -272,58 +277,110 @@ function StepHeader({
 // ── Home view ──────────────────────────────────────────────────────────────────
 
 function HomeView({
-  onHelp, onPanic,
+  onHelp, onPanic, onAfterReport, language,
 }: {
   onHelp: () => void;
   onPanic: () => void;
+  onAfterReport: () => void;
+  language: AppLanguage;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-5 py-8">
-      {/* Brand */}
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Shield className="h-10 w-10 text-primary" />
-        <h1 className="text-2xl font-black text-foreground">你安全吗？</h1>
-        <p className="text-sm text-muted-foreground">所有求助完全匿名，无需注册账号</p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-5 py-8">
+      <div className="max-w-sm text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.75rem] border border-primary/25 bg-primary/10 shadow-[0_0_36px_hsl(var(--primary)/0.22)]">
+          <Shield className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-3xl font-black tracking-[0.12em] text-foreground">
+          {copyFor(language, "THE UNMUTED", "静声守护")}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          {copyFor(
+            language,
+            "Reach help fast with private community support and a discreet SOS flow.",
+            "匿名发起求助，快速连接可信支援者。"
+          )}
+        </p>
       </div>
 
-      {/* Primary CTA */}
       <button
-        onClick={onHelp}
-        className="w-full max-w-sm rounded-3xl bg-primary px-6 py-6 text-left shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform"
+        onClick={onPanic}
+        className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-primary/20 bg-[linear-gradient(145deg,hsl(270_75%_62%),hsl(336_92%_76%))] px-7 py-8 text-center shadow-[0_0_50px_hsl(var(--primary)/0.28)] active:scale-[0.98] transition-transform"
       >
-        <p className="text-2xl font-black text-primary-foreground">我需要帮助</p>
-        <p className="mt-1 text-sm text-primary-foreground/80">
-          找到可信社区支援者 · 匿名 · 加密
-        </p>
-        <div className="mt-4 flex gap-2">
-          {["💙 情绪支持", "🤝 陪同接应", "💡 信息建议"].map(t => (
-            <span
-              key={t}
-              className="rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
-            >
-              {t}
-            </span>
-          ))}
+        <div className="absolute inset-x-6 top-0 h-20 rounded-b-full bg-primary-foreground/10 blur-2xl" />
+        <div className="relative">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-foreground/80">
+            {copyFor(language, "Main Action", "主要操作")}
+          </p>
+          <p className="mt-3 text-4xl font-black tracking-[0.25em] text-primary-foreground">SOS</p>
+          <p className="mt-3 text-lg font-bold text-primary-foreground">
+            {copyFor(language, "Emergency Report", "紧急上报")}
+          </p>
+          <p className="mt-4 text-sm leading-6 text-primary-foreground/80">
+            {copyFor(
+              language,
+              "Press and hold to trigger emergency reporting and protected on-chain evidence.",
+              "长按即可触发紧急求助与保护性存证。"
+            )}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {[
+              copyFor(language, "Hold to trigger", "长按触发"),
+              copyFor(language, "Anonymous", "匿名"),
+              "Phantom + Solana",
+            ].map((t) => (
+              <span
+                key={t}
+                className="rounded-full bg-primary-foreground/16 px-3 py-1 text-[11px] font-semibold text-primary-foreground"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
       </button>
 
-      {/* Secondary: panic */}
-      <div className="w-full max-w-sm space-y-2">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          极端危险情况
-        </p>
+      <div className="grid w-full max-w-sm gap-3">
         <button
-          onClick={onPanic}
-          className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4 active:scale-[0.98] transition-transform"
+          onClick={onAfterReport}
+          className="rounded-2xl border border-border/80 bg-card/92 px-5 py-4 text-left shadow-[0_10px_28px_hsl(240_70%_4%/0.28)] active:scale-[0.98] transition-transform"
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-black text-primary">
-            SOS
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-foreground">紧急求救 + 存证</p>
-            <p className="text-xs text-muted-foreground">长按触发报警 + Solana 链上存证</p>
-          </div>
+          <p className="text-sm font-bold text-foreground">
+            {copyFor(language, "After Report", "事后存证")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {copyFor(
+              language,
+              "Upload photo, video, or audio evidence later when you are safe.",
+              "在安全后上传照片、视频或录音补充记录。"
+            )}
+          </p>
         </button>
+
+        <button
+          onClick={onHelp}
+          className="rounded-2xl border border-border/80 bg-card/78 px-5 py-4 text-left active:scale-[0.98] transition-transform"
+        >
+          <p className="text-sm font-bold text-foreground">
+            {copyFor(language, "Community Help", "社区陪伴支持")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {copyFor(
+              language,
+              "Find emotional support, accompaniment, and practical advice nearby.",
+              "获取情绪支持、陪伴接应与信息建议。"
+            )}
+          </p>
+        </button>
+      </div>
+
+      <div className="max-w-sm rounded-2xl border border-border/70 bg-secondary/65 px-4 py-3 text-center">
+        <p className="text-xs leading-5 text-muted-foreground">
+          {copyFor(
+            language,
+            "Immediate danger response stays first. Follow-up reporting remains available as a smaller secondary path.",
+            "首页优先突出紧急上报，事后报告作为次级入口保留。"
+          )}
+        </p>
       </div>
     </div>
   );
