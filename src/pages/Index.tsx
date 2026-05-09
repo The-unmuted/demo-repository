@@ -9,12 +9,13 @@ import BottomNav from "@/components/BottomNav";
 import MapPage from "@/components/MapPage";
 import EvidencePage from "@/components/EvidencePage";
 import CommunityPage from "@/components/CommunityPage";
+import DAOPage from "@/components/DAOPage";
 import { Shield } from "lucide-react";
 
 const CONTRACT_ADDRESS = "0x79B1A83d803213560BA5AF373FDcE54d1e84f18c";
 
 export default function Index() {
-  const [activeTab, setActiveTab] = useState<"sos" | "map" | "evidence" | "community">("sos");
+  const [activeTab, setActiveTab] = useState<"sos" | "map" | "evidence" | "community" | "dao">("sos");
   const walletHook = useWallet(CONTRACT_ADDRESS);
   const { soundOn, toggleSound, isSilent, voiceDeterrent, customAudioUrl, saveCustomAudio } = useSilentMode();
 
@@ -58,6 +59,7 @@ export default function Index() {
         {activeTab === "map" && <MapPage contract={wallet.contract} />}
         {activeTab === "evidence" && <EvidencePage />}
         {activeTab === "community" && <CommunityPage />}
+        {activeTab === "dao" && <DAOPage />}
       </main>
 
       {/* Bottom nav */}

@@ -1,15 +1,16 @@
-import { Shield, Map, FileText, Users } from "lucide-react";
+import { Shield, Map, FileText, Users, Landmark } from "lucide-react";
 
 interface BottomNavProps {
-  activeTab: "sos" | "map" | "evidence" | "community";
-  onTabChange: (tab: "sos" | "map" | "evidence" | "community") => void;
+  activeTab: "sos" | "map" | "evidence" | "community" | "dao";
+  onTabChange: (tab: "sos" | "map" | "evidence" | "community" | "dao") => void;
 }
 
 const tabs = [
-  { id: "sos" as const, label: "求救", icon: Shield },
-  { id: "map" as const, label: "地图", icon: Map },
-  { id: "evidence" as const, label: "证据", icon: FileText },
-  { id: "community" as const, label: "互助", icon: Users },
+  { id: "sos"       as const, label: "求救", icon: Shield   },
+  { id: "map"       as const, label: "地图", icon: Map      },
+  { id: "evidence"  as const, label: "证据", icon: FileText },
+  { id: "community" as const, label: "互助", icon: Users    },
+  { id: "dao"       as const, label: "治理", icon: Landmark },
 ];
 
 export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
