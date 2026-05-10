@@ -231,14 +231,7 @@ export default function SOSButton({
         <div className="relative z-10 flex h-full flex-col items-center justify-center gap-2">
           <AnimatePresence mode="wait">
             {state === "idle" && (
-              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative flex h-full w-full items-center justify-center">
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black tracking-[0.2em] text-primary-foreground drop-shadow-[0_3px_18px_hsl(246_64%_8%/0.55)] [text-indent:0.2em]">
-                  SOS
-                </span>
-                <span className="absolute bottom-[22%] left-1/2 -translate-x-1/2 whitespace-nowrap text-lg font-bold text-primary-foreground/90 drop-shadow-[0_2px_10px_hsl(246_64%_8%/0.35)]">
-                  {copyFor(language, "Emergency Report", "紧急上报")}
-                </span>
-              </motion.div>
+              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
             )}
             {state === "pressing" && (
               <motion.div key="pressing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-1">
@@ -283,7 +276,13 @@ export default function SOSButton({
         </div>
       </motion.button>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      {state === "idle" && (
+        <p className="mt-3 text-center text-xs font-semibold uppercase tracking-[0.16em] text-primary/85">
+          {copyFor(language, "SOS: Emergency Report", "SOS：紧急上报")}
+        </p>
+      )}
+
+      <p className="mt-2 text-center text-sm text-muted-foreground">
         {state === "idle" && copyFor(language, "Hold for 3 seconds", "长按 3 秒触发")}
         {state === "pressing" && copyFor(language, "Keep holding", "继续按住...")}
         {state === "loading" && copyFor(language, "Getting location and uploading", "正在获取位置并上链")}
