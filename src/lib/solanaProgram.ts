@@ -1,0 +1,10 @@
+export const THE_UNMUTED_PROGRAM_ID =
+  "BAnZZzYmRkonjWMS1Zhn8bbJrX8nNT9RMvhpKdeV722k";
+
+export const THE_UNMUTED_PROGRAM_NETWORK = "devnet";
+
+export const THE_UNMUTED_PROGRAM_AUTHORITY =
+  "5sQsDXrTzfrhNx34Q2NuLjYtsSQvrGb79LBU8z8uEsgz";
+
+export const THE_UNMUTED_DEPLOY_SIGNATURE =
+  "3gNG55ZqoMVW6P4CzADsS8frEJuB81qXcn6qHUGsZmAMtSVNvVX4hB3qEepynN12bTUmbrqkqPieg9CYFAtZEDrT";

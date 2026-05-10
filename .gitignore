@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 .vercel
+target/
+program-keypair.json
+*-keypair.json

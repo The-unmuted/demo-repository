@@ -23,6 +23,7 @@
 - **Map page:** The Map page displays the warning map, color legend, report counts, user location, and map-based alert zones.
 - **Support page:** The Support page provides the supporter workflow for nearby anonymous help requests.
 - **DAO page:** The DAO page supports aid proposals, voting, professional SBT-style credentials, and a MagicBlock Private DAO Room demo layer.
+- **Solana Devnet program:** A minimal The Unmuted privacy-checkpoint program is deployed on Solana Devnet for the hackathon demo.
 
 - **双语界面：** 中英文通过按钮切换，同一时间只展示一种语言。
 - **首次注册：** 用户首次进入需要注册，之后在本地保持登录状态。支持 Phantom 钱包签名，也支持邮箱联系 / Privy OTP。
@@ -32,6 +33,7 @@
 - **地图页面：** Map 页面展示预警地图、颜色图例、上报数量、用户定位和地图预警区域。
 - **支援页面：** Support 页面提供面向附近匿名求助的支援者流程。
 - **DAO 页面：** DAO 页面支持救助提案、投票、专业人士 SBT 风格认证，以及 MagicBlock 私密 DAO 审核室演示层。
+- **Solana Devnet 程序：** 为黑客松 Demo 部署了一个最小化的 The Unmuted 隐私检查点程序。
 
 ---
 
@@ -102,14 +104,36 @@
 - Professionals can claim SBT-style credentials for expert endorsements.
 - The professional SBT flow includes a front-end-only certification upload page for demo review.
 - The DAO page includes a MagicBlock Private DAO Room demo card for private aid and professional credential review.
+- A minimal The Unmuted Solana Devnet program is deployed for privacy-safe DAO/evidence checkpoints. It accepts checkpoint instruction types and logs that only hashes/checkpoints should be submitted on-chain.
 
 - 受助者可发起法律、心理或社区支持提案。
 - DAO 投票绑定匿名身份，降低重复随机身份带来的滥用。
 - 专业人士可认领 SBT 风格认证，提供专家背书。
 - 专业 SBT 认领包含前端演示版认证材料上传页面。
 - DAO 页面包含 MagicBlock 私密 DAO 审核室演示卡片，用于私密救助与专业认证审核展示。
+- 已部署最小化 The Unmuted Solana Devnet 程序，用于隐私安全的 DAO / 存证检查点。程序接收检查点指令类型，并强调链上只应提交哈希或检查点。
 
-### 6. MagicBlock Privacy Demo | MagicBlock 隐私演示
+### 6. Solana Devnet Deployment | Solana Devnet 部署
+
+- **Program ID:** `BAnZZzYmRkonjWMS1Zhn8bbJrX8nNT9RMvhpKdeV722k`
+- **Network:** Solana Devnet
+- **Explorer:** https://explorer.solana.com/address/BAnZZzYmRkonjWMS1Zhn8bbJrX8nNT9RMvhpKdeV722k?cluster=devnet
+- **Deploy transaction:** `3gNG55ZqoMVW6P4CzADsS8frEJuB81qXcn6qHUGsZmAMtSVNvVX4hB3qEepynN12bTUmbrqkqPieg9CYFAtZEDrT`
+- **Upgrade authority:** `5sQsDXrTzfrhNx34Q2NuLjYtsSQvrGb79LBU8z8uEsgz`
+- **Program source:** `programs/the_unmuted_program/src/lib.rs`
+- **What it does now:** The program is intentionally small for demo safety. It receives privacy-safe checkpoint instructions for SOS evidence, DAO private review, and professional SBT review, then logs that only hashes/checkpoints should go on-chain.
+- **Production path:** Replace log-only checkpoints with structured PDA accounts, hashed evidence commitments, DAO decision state, SBT issuance status, and MagicBlock settlement commitments.
+
+- **程序 ID：** `BAnZZzYmRkonjWMS1Zhn8bbJrX8nNT9RMvhpKdeV722k`
+- **网络：** Solana Devnet
+- **浏览器：** https://explorer.solana.com/address/BAnZZzYmRkonjWMS1Zhn8bbJrX8nNT9RMvhpKdeV722k?cluster=devnet
+- **部署交易：** `3gNG55ZqoMVW6P4CzADsS8frEJuB81qXcn6qHUGsZmAMtSVNvVX4hB3qEepynN12bTUmbrqkqPieg9CYFAtZEDrT`
+- **升级权限：** `5sQsDXrTzfrhNx34Q2NuLjYtsSQvrGb79LBU8z8uEsgz`
+- **程序源码：** `programs/the_unmuted_program/src/lib.rs`
+- **当前功能：** Demo 版本刻意保持最小化。它接收 SOS 存证、DAO 私密审核、专业 SBT 审核等隐私安全检查点指令，并在日志中强调链上只提交哈希 / 检查点。
+- **正式路径：** 后续可替换为结构化 PDA 账户、证据哈希承诺、DAO 决策状态、SBT 签发状态，以及 MagicBlock 结算承诺。
+
+### 7. MagicBlock Privacy Demo | MagicBlock 隐私演示
 
 - **Private DAO Room:** The DAO page presents a front-end simulation of a MagicBlock Private DAO Room.
 - **Delegated review state:** Sensitive proposal details and professional certification packets can be represented as private review state.
@@ -132,7 +156,7 @@
 | Frontend | React 18, TypeScript, Vite |
 | Styling | Tailwind CSS, shadcn/ui components, lucide-react |
 | Auth | Privy email OTP, Phantom wallet signature, local fallback |
-| Chain | Solana, Phantom, Solana Memo-style anchoring |
+| Chain | Solana Devnet custom program, Phantom, Solana Memo-style anchoring |
 | Storage | Demo Arweave-style vault, IndexedDB, localStorage |
 | Encryption | Web Crypto API, AES-256-GCM |
 | P2P Demo | Gun.js for support/chat/DAO demo broadcasts |
@@ -142,7 +166,9 @@
 ---
 
 ## Getting Started | 运行
+
 https://the-unmuted.vercel.app/
+
 ---
 
 ## Environment | 环境变量
@@ -169,6 +195,7 @@ VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 - The Support page provides the supporter workflow for nearby anonymous requests.
 - Certification upload in the DAO tab is front-end-only for demo review.
 - The MagicBlock Private DAO Room is a front-end architecture simulation for private review flows.
+- The custom Solana Devnet program is live, but the current frontend still uses Memo anchoring/simulation for user-triggered evidence flows. The next integration step is wiring frontend checkpoint instructions directly into the deployed program.
 - Private evidence keys are user-held. Losing the downloaded key bundle can make encrypted evidence unrecoverable in a production design.
 
 - 本仓库是 The Unmuted 最终产品原型的 Demo 代码库。
@@ -178,6 +205,7 @@ VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 - Support 页面提供附近匿名求助的支援者流程。
 - DAO 专业认证上传目前为前端 Demo。
 - MagicBlock 私密 DAO 审核室是用于私密审核流程的前端架构模拟。
+- 自定义 Solana Devnet 程序已上线，但当前前端的用户触发式存证流程仍使用 Memo anchoring / 模拟回退。下一步是把前端检查点指令直接接入已部署程序。
 - 私密证据密钥由用户保存；正式版本中若遗失密钥，可能无法恢复加密证据。
 
 ---

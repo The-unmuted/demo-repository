@@ -25,6 +25,11 @@ import {
   timeAgo, daysLeft,
 } from "@/lib/daoGovernance";
 import { AppLanguage, copyFor } from "@/lib/locale";
+import {
+  THE_UNMUTED_DEPLOY_SIGNATURE,
+  THE_UNMUTED_PROGRAM_AUTHORITY,
+  THE_UNMUTED_PROGRAM_ID,
+} from "@/lib/solanaProgram";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -260,6 +265,35 @@ function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
           "黑客松范围：当前仅为前端模拟。正式路径会加入 MagicBlock delegation hooks、PER 访问令牌，以及将审核通过的救助状态结算到 Solana 的 commit action。"
         )}
       </p>
+
+      <div className="mt-3 rounded-2xl border border-primary/20 bg-background/28 p-3 text-[11px] leading-5">
+        <p className="font-bold text-foreground">
+          {copyFor(language, "Live Solana Devnet program", "已部署 Solana Devnet 程序")}
+        </p>
+        <a
+          href={`https://explorer.solana.com/address/${THE_UNMUTED_PROGRAM_ID}?cluster=devnet`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 block break-all font-mono text-primary underline-offset-4 hover:underline"
+        >
+          {THE_UNMUTED_PROGRAM_ID}
+        </a>
+        <p className="mt-1 break-all text-muted-foreground">
+          {copyFor(language, "Upgrade authority", "升级权限")}
+          {": "}
+          <span className="font-mono">{THE_UNMUTED_PROGRAM_AUTHORITY}</span>
+        </p>
+        <a
+          href={`https://explorer.solana.com/tx/${THE_UNMUTED_DEPLOY_SIGNATURE}?cluster=devnet`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 block break-all font-mono text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+        >
+          {copyFor(language, "Deploy tx", "部署交易")}
+          {": "}
+          {THE_UNMUTED_DEPLOY_SIGNATURE}
+        </a>
+      </div>
     </div>
   );
 }
