@@ -12,7 +12,7 @@ import { AppLanguage, copyFor } from "@/lib/locale";
 import { toast } from "sonner";
 
 type SOSState = "idle" | "pressing" | "loading" | "success" | "offline";
-const LOGO_SRC = "/the-unmuted-mark.png";
+const LOGO_SRC = "/sos-button-logo-cutout.png";
 
 interface SOSButtonProps {
   contract: Contract | null;
@@ -188,20 +188,12 @@ export default function SOSButton({
     resetAfterDelay();
   }
 
-  const bgColor = {
-    idle: "bg-sos",
-    pressing: "bg-sos-pressing",
-    loading: "bg-sos",
-    success: "bg-sos-success",
-    offline: "bg-sos-offline",
-  }[state];
-
   const glowClass = {
-    idle: "shadow-[0_0_40px_hsl(var(--sos-glow)),0_0_80px_hsl(var(--sos-glow))]",
-    pressing: "shadow-[0_0_40px_hsl(var(--sos-pressing-glow)),0_0_80px_hsl(var(--sos-pressing-glow))]",
-    loading: "shadow-[0_0_40px_hsl(var(--sos-glow)),0_0_80px_hsl(var(--sos-glow))]",
-    success: "shadow-[0_0_40px_hsl(var(--sos-success-glow)),0_0_80px_hsl(var(--sos-success-glow))]",
-    offline: "shadow-[0_0_30px_hsl(45_93%_58%/0.3)]",
+    idle: "drop-shadow-[0_0_34px_hsl(var(--sos-glow))]",
+    pressing: "drop-shadow-[0_0_34px_hsl(var(--sos-pressing-glow))]",
+    loading: "drop-shadow-[0_0_34px_hsl(var(--sos-glow))]",
+    success: "drop-shadow-[0_0_34px_hsl(var(--sos-success-glow))]",
+    offline: "drop-shadow-[0_0_28px_hsl(45_93%_58%/0.3)]",
   }[state];
 
   return (
@@ -215,7 +207,7 @@ export default function SOSButton({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`relative aspect-square w-[80vw] max-w-[360px] select-none overflow-hidden rounded-full ${bgColor} ${glowClass} transition-colors duration-500`}
+        className={`relative aspect-square w-[80vw] max-w-[360px] select-none overflow-visible rounded-[2rem] bg-transparent ${glowClass} transition-colors duration-500`}
         whileTap={state === "idle" ? { scale: 0.95 } : {}}
         style={{ touchAction: "none" }}
       >
@@ -223,7 +215,7 @@ export default function SOSButton({
           src={LOGO_SRC}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-70 mix-blend-normal drop-shadow-[0_0_28px_hsl(270_90%_38%/0.32)] [filter:saturate(1.45)_contrast(1.12)_brightness(1.04)]"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-full w-full -translate-x-1/2 -translate-y-1/2 object-contain opacity-100 drop-shadow-[0_0_42px_hsl(320_100%_78%/0.26)] [filter:saturate(1.16)_contrast(1.05)_brightness(1.04)]"
         />
 
         {state === "pressing" && (
@@ -239,9 +231,11 @@ export default function SOSButton({
         <div className="relative z-10 flex h-full flex-col items-center justify-center gap-2">
           <AnimatePresence mode="wait">
             {state === "idle" && (
-              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
-                <span className="text-5xl font-black tracking-[0.2em] text-primary-foreground">SOS</span>
-                <span className="text-lg font-bold text-primary-foreground/90">
+              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative flex h-full w-full items-center justify-center">
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black tracking-[0.2em] text-primary-foreground drop-shadow-[0_3px_18px_hsl(246_64%_8%/0.55)] [text-indent:0.2em]">
+                  SOS
+                </span>
+                <span className="absolute bottom-[22%] left-1/2 -translate-x-1/2 whitespace-nowrap text-lg font-bold text-primary-foreground/90 drop-shadow-[0_2px_10px_hsl(246_64%_8%/0.35)]">
                   {copyFor(language, "Emergency Report", "紧急上报")}
                 </span>
               </motion.div>
