@@ -141,25 +141,8 @@
 
 ---
 
-## Getting Started | 本地运行
-
-```bash
-npm install
-npm run dev
-```
-
-Open the local Vite URL shown in the terminal, usually:
-
-```text
-http://localhost:5173/
-```
-
-Build for production:
-
-```bash
-npm run build
-```
-
+## Getting Started | 运行
+https://the-unmuted.vercel.app/
 ---
 
 ## Environment | 环境变量
