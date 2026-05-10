@@ -18,7 +18,14 @@ const PEERS = [
   "https://gun-manhattan.herokuapp.com/gun",
   "https://peer.wallie.io/gun",
 ];
-let _gun: any = null;
+type GunChain = {
+  get: (key: string) => GunChain;
+  put: (data: Record<string, unknown>) => void;
+  map: () => GunChain;
+  on: (callback: (data: unknown) => void) => void;
+};
+
+let _gun: GunChain | null = null;
 function getGun() {
   if (!_gun) _gun = Gun({ peers: PEERS, localStorage: false });
   return _gun;
@@ -30,6 +37,20 @@ const NS_SBT       = "unmuted-dao-sbt-v1";
 const LS_PROPOSALS = "unmuted_dao_proposals";
 const LS_OWN_VOTES = "unmuted_dao_own_votes";
 
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null;
+}
+
+function readString(data: Record<string, unknown>, key: string): string {
+  const value = data[key];
+  return typeof value === "string" ? value : "";
+}
+
+function readNumber(data: Record<string, unknown>, key: string, fallback = 0): number {
+  const value = data[key];
+  return typeof value === "number" ? value : fallback;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export type ProposalType   = "legal" | "psychological" | "community";
@@ -40,10 +61,16 @@ export interface Proposal {
   id:              string;
   type:            ProposalType;
   title:           string;
+  titleEn?:        string;
+  titleZh?:        string;
   description:     string;
+  descriptionEn?:  string;
+  descriptionZh?:  string;
   evidenceHash?:   string; // optional link to vault record from 3.1
   amountRequested: number; // USDC
   proposerAlias:   string;
+  proposerAliasEn?: string;
+  proposerAliasZh?: string;
   createdAt:       number;
   expiresAt:       number; // 7 days
   status:          ProposalStatus;
@@ -68,19 +95,91 @@ export interface SBTHolder {
 // ── Config labels ──────────────────────────────────────────────────────────────
 
 export const PROPOSAL_TYPE_CONFIG: {
-  id: ProposalType; label: string; icon: string; desc: string; color: string;
+  id: ProposalType;
+  label: string;
+  labelEn: string;
+  labelZh: string;
+  icon: string;
+  desc: string;
+  descEn: string;
+  descZh: string;
+  color: string;
 }[] = [
-  { id: "legal",         label: "法律援助",   icon: "⚖️",  desc: "律师协助、骚扰令申请、法律咨询", color: "text-blue-400" },
-  { id: "psychological", label: "心理援助",   icon: "🧠",  desc: "心理咨询、创伤康复、危机干预",   color: "text-purple-400" },
-  { id: "community",     label: "社区决策",   icon: "📋",  desc: "社区规则、资金分配、治理修改",   color: "text-emerald-400" },
+  {
+    id: "legal",
+    label: "法律援助",
+    labelEn: "Legal aid",
+    labelZh: "法律援助",
+    icon: "⚖️",
+    desc: "律师协助、骚扰令申请、法律咨询",
+    descEn: "Lawyer support, protection orders, and legal consultation",
+    descZh: "律师协助、骚扰令申请、法律咨询",
+    color: "text-blue-400",
+  },
+  {
+    id: "psychological",
+    label: "心理援助",
+    labelEn: "Mental health aid",
+    labelZh: "心理援助",
+    icon: "🧠",
+    desc: "心理咨询、创伤康复、危机干预",
+    descEn: "Counseling, trauma recovery, and crisis intervention",
+    descZh: "心理咨询、创伤康复、危机干预",
+    color: "text-purple-400",
+  },
+  {
+    id: "community",
+    label: "社区决策",
+    labelEn: "Community decision",
+    labelZh: "社区决策",
+    icon: "📋",
+    desc: "社区规则、资金分配、治理修改",
+    descEn: "Community rules, funding allocation, and governance updates",
+    descZh: "社区规则、资金分配、治理修改",
+    color: "text-emerald-400",
+  },
 ];
 
 export const SBT_TYPE_CONFIG: {
-  id: SBTType; label: string; icon: string; desc: string;
+  id: SBTType;
+  label: string;
+  labelEn: string;
+  labelZh: string;
+  icon: string;
+  desc: string;
+  descEn: string;
+  descZh: string;
 }[] = [
-  { id: "lawyer",        label: "律师",       icon: "⚖️",  desc: "持牌律师，可提供法律背书" },
-  { id: "psychologist",  label: "心理咨询师", icon: "🧠",  desc: "注册心理咨询师，可评估援助需求" },
-  { id: "advocate",      label: "权益倡导者", icon: "🛡️", desc: "认证社区权益倡导者" },
+  {
+    id: "lawyer",
+    label: "律师",
+    labelEn: "Lawyer",
+    labelZh: "律师",
+    icon: "⚖️",
+    desc: "持牌律师，可提供法律背书",
+    descEn: "Licensed lawyer who can endorse legal requests",
+    descZh: "持牌律师，可提供法律背书",
+  },
+  {
+    id: "psychologist",
+    label: "心理咨询师",
+    labelEn: "Counselor",
+    labelZh: "心理咨询师",
+    icon: "🧠",
+    desc: "注册心理咨询师，可评估援助需求",
+    descEn: "Registered counselor who can assess support needs",
+    descZh: "注册心理咨询师，可评估援助需求",
+  },
+  {
+    id: "advocate",
+    label: "权益倡导者",
+    labelEn: "Advocate",
+    labelZh: "权益倡导者",
+    icon: "🛡️",
+    desc: "认证社区权益倡导者",
+    descEn: "Verified community rights advocate",
+    descZh: "认证社区权益倡导者",
+  },
 ];
 
 // ── Treasury (demo constants) ──────────────────────────────────────────────────
@@ -147,10 +246,16 @@ const SEED_PROPOSALS: Proposal[] = [
     id: "seed-001",
     type: "legal",
     title: "骚扰令法律协助申请",
+    titleEn: "Protection order legal assistance",
+    titleZh: "骚扰令法律协助申请",
     description: "需要律师协助申请人身保护令。骚扰者持续跟踪，已有多次骚扰记录并在证据库存证。请求 DAO 提供法律援助资金。",
+    descriptionEn: "Needs lawyer support to apply for a personal protection order. The harasser continues to stalk them, with repeated incidents already secured in the evidence vault. Requests DAO legal aid funding.",
+    descriptionZh: "需要律师协助申请人身保护令。骚扰者持续跟踪，已有多次骚扰记录并在证据库存证。请求 DAO 提供法律援助资金。",
     evidenceHash: "0x7f3a9b2c…",
     amountRequested: 300,
     proposerAlias: "沉默蓝鸟",
+    proposerAliasEn: "Silent Bluebird",
+    proposerAliasZh: "沉默蓝鸟",
     createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
     expiresAt: Date.now() + 4 * 24 * 60 * 60 * 1000,
     status: "passed",
@@ -159,9 +264,15 @@ const SEED_PROPOSALS: Proposal[] = [
     id: "seed-002",
     type: "psychological",
     title: "创伤后心理康复支援",
+    titleEn: "Post-trauma counseling support",
+    titleZh: "创伤后心理康复支援",
     description: "经历长期家暴后寻求专业心理咨询。需要持续 3 个月的康复疗程支持，无力独自承担费用。",
+    descriptionEn: "Seeking professional counseling after long-term domestic violence. Needs three months of recovery support and cannot cover the cost alone.",
+    descriptionZh: "经历长期家暴后寻求专业心理咨询。需要持续 3 个月的康复疗程支持，无力独自承担费用。",
     amountRequested: 200,
     proposerAlias: "远山蔷薇",
+    proposerAliasEn: "Distant Rose",
+    proposerAliasZh: "远山蔷薇",
     createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000,
     expiresAt: Date.now() + 6 * 24 * 60 * 60 * 1000,
     status: "active",
@@ -170,9 +281,15 @@ const SEED_PROPOSALS: Proposal[] = [
     id: "seed-003",
     type: "community",
     title: "制定社区安全行动手册",
+    titleEn: "Create a community safety playbook",
+    titleZh: "制定社区安全行动手册",
     description: "提案建立一份面向社区成员的安全指南，包含遭遇跟踪、骚扰时的应对步骤与资源清单。",
+    descriptionEn: "Proposal to create a safety guide for community members, including response steps and resource lists for stalking or harassment.",
+    descriptionZh: "提案建立一份面向社区成员的安全指南，包含遭遇跟踪、骚扰时的应对步骤与资源清单。",
     amountRequested: 0,
     proposerAlias: "星野旅人",
+    proposerAliasEn: "Starlit Traveler",
+    proposerAliasZh: "星野旅人",
     createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
     expiresAt: Date.now() + 2 * 24 * 60 * 60 * 1000,
     status: "funded",
@@ -226,9 +343,9 @@ const SEED_VOTES: Record<string, VoteRecord[]> = {
 };
 
 const SEED_SBT: SBTHolder[] = [
-  { alias: "沉默红枫",   nullifierHash: "expert-seed-001", sbtType: "lawyer",       claimedAt: Date.now() - 7 * 86400000 },
-  { alias: "远山蔷薇",   nullifierHash: "expert-seed-002", sbtType: "psychologist", claimedAt: Date.now() - 5 * 86400000 },
-  { alias: "星野旅人",   nullifierHash: "expert-seed-003", sbtType: "advocate",     claimedAt: Date.now() - 3 * 86400000 },
+  { alias: "Silent Maple",   nullifierHash: "expert-seed-001", sbtType: "lawyer",       claimedAt: Date.now() - 7 * 86400000 },
+  { alias: "Distant Rose",   nullifierHash: "expert-seed-002", sbtType: "psychologist", claimedAt: Date.now() - 5 * 86400000 },
+  { alias: "Starlit Traveler", nullifierHash: "expert-seed-003", sbtType: "advocate",   claimedAt: Date.now() - 3 * 86400000 },
 ];
 
 const LS_SEEDED = "unmuted_dao_seeded";
@@ -292,10 +409,16 @@ export function broadcastProposal(p: Proposal): void {
   try {
     getGun().get(NS_PROPOSALS).get(p.id).put({
       id: p.id, type: p.type, title: p.title,
+      titleEn: p.titleEn ?? "",
+      titleZh: p.titleZh ?? "",
       description: p.description,
+      descriptionEn: p.descriptionEn ?? "",
+      descriptionZh: p.descriptionZh ?? "",
       evidenceHash: p.evidenceHash ?? "",
       amountRequested: p.amountRequested,
       proposerAlias: p.proposerAlias,
+      proposerAliasEn: p.proposerAliasEn ?? "",
+      proposerAliasZh: p.proposerAliasZh ?? "",
       createdAt: p.createdAt,
       expiresAt: p.expiresAt,
       status: p.status,
@@ -307,21 +430,29 @@ export function subscribeProposals(onProposal: (p: Proposal) => void): () => voi
   let active = true;
   const seen = new Set<string>();
   try {
-    getGun().get(NS_PROPOSALS).map().on((data: any) => {
-      if (!active || !data?.id || seen.has(data.id)) return;
-      seen.add(data.id);
+    getGun().get(NS_PROPOSALS).map().on((data) => {
+      if (!active || !isRecord(data)) return;
+      const id = readString(data, "id");
+      if (!id || seen.has(id)) return;
+      seen.add(id);
       try {
         onProposal({
-          id:              data.id,
-          type:            data.type as ProposalType,
-          title:           data.title,
-          description:     data.description,
-          evidenceHash:    data.evidenceHash || undefined,
-          amountRequested: data.amountRequested ?? 0,
-          proposerAlias:   data.proposerAlias,
-          createdAt:       data.createdAt,
-          expiresAt:       data.expiresAt,
-          status:          data.status as ProposalStatus,
+          id,
+          type:            readString(data, "type") as ProposalType,
+          title:           readString(data, "title"),
+          titleEn:         readString(data, "titleEn") || undefined,
+          titleZh:         readString(data, "titleZh") || undefined,
+          description:     readString(data, "description"),
+          descriptionEn:   readString(data, "descriptionEn") || undefined,
+          descriptionZh:   readString(data, "descriptionZh") || undefined,
+          evidenceHash:    readString(data, "evidenceHash") || undefined,
+          amountRequested: readNumber(data, "amountRequested"),
+          proposerAlias:   readString(data, "proposerAlias"),
+          proposerAliasEn: readString(data, "proposerAliasEn") || undefined,
+          proposerAliasZh: readString(data, "proposerAliasZh") || undefined,
+          createdAt:       readNumber(data, "createdAt"),
+          expiresAt:       readNumber(data, "expiresAt"),
+          status:          readString(data, "status") as ProposalStatus,
         });
       } catch { /* malformed */ }
     });
@@ -359,19 +490,22 @@ export function subscribeProposalVotes(
   let active = true;
   const seen = new Set<string>();
   try {
-    getGun().get(NS_VOTES).map().on((data: any) => {
-      if (!active || !data?.proposalId || data.proposalId !== proposalId) return;
-      const key = `${data.proposalId}:${data.voterHash}`;
+    getGun().get(NS_VOTES).map().on((data) => {
+      if (!active || !isRecord(data)) return;
+      const incomingProposalId = readString(data, "proposalId");
+      const voterHash = readString(data, "voterHash");
+      if (!incomingProposalId || incomingProposalId !== proposalId) return;
+      const key = `${incomingProposalId}:${voterHash}`;
       if (seen.has(key)) return;
       seen.add(key);
       try {
         onVote({
-          proposalId: data.proposalId,
-          voterHash:  data.voterHash,
-          choice:     data.choice as "yes" | "no",
+          proposalId: incomingProposalId,
+          voterHash,
+          choice:     readString(data, "choice") as "yes" | "no",
           isExpert:   Boolean(data.isExpert),
-          sbtType:    data.sbtType || undefined,
-          timestamp:  data.timestamp,
+          sbtType:    readString(data, "sbtType") as SBTType || undefined,
+          timestamp:  readNumber(data, "timestamp"),
         });
       } catch { /* malformed */ }
     });
@@ -398,15 +532,17 @@ export function subscribeSBTs(onHolder: (h: SBTHolder) => void): () => void {
   let active = true;
   const seen = new Set<string>();
   try {
-    getGun().get(NS_SBT).map().on((data: any) => {
-      if (!active || !data?.nullifierHash || seen.has(data.nullifierHash)) return;
-      seen.add(data.nullifierHash);
+    getGun().get(NS_SBT).map().on((data) => {
+      if (!active || !isRecord(data)) return;
+      const nullifierHash = readString(data, "nullifierHash");
+      if (!nullifierHash || seen.has(nullifierHash)) return;
+      seen.add(nullifierHash);
       try {
         onHolder({
-          alias:         data.alias,
-          nullifierHash: data.nullifierHash,
-          sbtType:       data.sbtType as SBTType,
-          claimedAt:     data.claimedAt,
+          alias:         readString(data, "alias"),
+          nullifierHash,
+          sbtType:       readString(data, "sbtType") as SBTType,
+          claimedAt:     readNumber(data, "claimedAt"),
         });
       } catch { /* malformed */ }
     });
@@ -414,9 +550,15 @@ export function subscribeSBTs(onHolder: (h: SBTHolder) => void): () => void {
   return () => { active = false; };
 }
 
-export function timeAgo(ts: number): string {
+export function timeAgo(ts: number, language: "en" | "zh" = "zh"): string {
   const diff = Date.now() - ts;
-  if (diff < 60000)  return "刚刚";
+  if (language === "en") {
+    if (diff < 60000) return "Just now";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+  if (diff < 60000) return "刚刚";
   if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
   return `${Math.floor(diff / 86400000)} 天前`;

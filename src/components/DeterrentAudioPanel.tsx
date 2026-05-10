@@ -1,15 +1,18 @@
 import { useRef, useState } from "react";
 import { Upload, Trash2, Play, Square, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 interface DeterrentAudioPanelProps {
   customAudioUrl: string | null;
   onSaveAudio: (dataUrl: string | null) => void;
+  language?: AppLanguage;
 }
 
 export default function DeterrentAudioPanel({
   customAudioUrl,
   onSaveAudio,
+  language = "en",
 }: DeterrentAudioPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -22,7 +25,7 @@ export default function DeterrentAudioPanel({
 
     // Check size (max 5MB for localStorage)
     if (file.size > 5 * 1024 * 1024) {
-      alert("文件过大，请选择小于 5MB 的音频文件");
+      alert(copyFor(language, "File is too large. Please choose audio under 5MB.", "文件过大，请选择小于 5MB 的音频文件"));
       return;
     }
 
@@ -68,7 +71,9 @@ export default function DeterrentAudioPanel({
     <div className="mx-4 mb-4 rounded-lg border border-border bg-card p-4">
       <div className="mb-3 flex items-center gap-2">
         <Volume2 className="h-4 w-4 text-primary" />
-        <span className="text-sm font-bold text-foreground">威慑音频</span>
+        <span className="text-sm font-bold text-foreground">
+          {copyFor(language, "Deterrent audio", "威慑音频")}
+        </span>
       </div>
 
       {customAudioUrl ? (
@@ -84,10 +89,10 @@ export default function DeterrentAudioPanel({
             ) : (
               <Play className="h-3.5 w-3.5" />
             )}
-            {isPlaying ? "停止" : "试听"}
+            {isPlaying ? copyFor(language, "Stop", "停止") : copyFor(language, "Preview", "试听")}
           </Button>
           <span className="flex-1 truncate text-xs text-muted-foreground">
-            {fileName || "已上传音频"}
+            {fileName || copyFor(language, "Audio uploaded", "已上传音频")}
           </span>
           <Button
             variant="ghost"
@@ -101,7 +106,11 @@ export default function DeterrentAudioPanel({
       ) : (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground">
-            上传自定义威慑音频（MP3/WAV，≤5MB），SOS触发时将循环播放
+            {copyFor(
+              language,
+              "Upload custom deterrent audio (MP3/WAV, <=5MB). It loops when SOS is triggered.",
+              "上传自定义威慑音频（MP3/WAV，≤5MB），SOS触发时将循环播放"
+            )}
           </p>
           <Button
             variant="outline"
@@ -110,10 +119,10 @@ export default function DeterrentAudioPanel({
             className="w-full gap-2"
           >
             <Upload className="h-3.5 w-3.5" />
-            上传音频文件
+            {copyFor(language, "Upload audio file", "上传音频文件")}
           </Button>
           <p className="text-center text-[10px] text-muted-foreground/60">
-            未上传时将使用系统语音合成
+            {copyFor(language, "System speech is used if no audio is uploaded.", "未上传时将使用系统语音合成")}
           </p>
         </div>
       )}

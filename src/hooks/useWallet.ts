@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { BrowserProvider, Contract } from "ethers";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 const AVALANCHE_FUJI_CHAIN_ID = 43113;
 const FUJI_CHAIN_CONFIG = {
@@ -23,6 +24,12 @@ const CONTRACT_ABI = [
   "function sosRecordCount() public view returns (uint256)",
 ];
 
+interface EthereumProvider {
+  request: <T = unknown>(args: { method: string; params?: unknown[] }) => Promise<T>;
+  on: (event: "accountsChanged" | "chainChanged", handler: () => void) => void;
+  removeListener: (event: "accountsChanged" | "chainChanged", handler: () => void) => void;
+}
+
 export interface WalletState {
   address: string | null;
   chainId: number | null;
@@ -32,7 +39,7 @@ export interface WalletState {
   contract: Contract | null;
 }
 
-export function useWallet(contractAddress: string) {
+export function useWallet(contractAddress: string, language: AppLanguage = "en") {
   const [wallet, setWallet] = useState<WalletState>({
     address: null,
     chainId: null,
@@ -43,7 +50,7 @@ export function useWallet(contractAddress: string) {
   });
 
   const updateWalletState = useCallback(async () => {
-    const eth = (window as any).ethereum;
+    const eth = window.ethereum;
     if (!eth) return;
     try {
       const accounts: string[] = await eth.request({ method: "eth_accounts" });
@@ -78,14 +85,14 @@ export function useWallet(contractAddress: string) {
   }, [contractAddress]);
 
   const connect = useCallback(async () => {
-    const eth = (window as any).ethereum;
+    const eth = window.ethereum;
     if (!eth) {
-      alert("请安装 MetaMask 或 Core 钱包");
+      alert(copyFor(language, "Please install MetaMask or Core wallet", "请安装 MetaMask 或 Core 钱包"));
       return;
     }
     await eth.request({ method: "eth_requestAccounts" });
     await updateWalletState();
-  }, [updateWalletState]);
+  }, [updateWalletState, language]);
 
   const disconnect = useCallback(() => {
     setWallet({
@@ -99,15 +106,15 @@ export function useWallet(contractAddress: string) {
   }, []);
 
   const switchToFuji = useCallback(async () => {
-    const eth = (window as any).ethereum;
+    const eth = window.ethereum;
     if (!eth) return;
     try {
       await eth.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: FUJI_CHAIN_CONFIG.chainId }],
       });
-    } catch (e: any) {
-      if (e.code === 4902) {
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error && error.code === 4902) {
         await eth.request({
           method: "wallet_addEthereumChain",
           params: [FUJI_CHAIN_CONFIG],
@@ -119,7 +126,7 @@ export function useWallet(contractAddress: string) {
 
   useEffect(() => {
     updateWalletState();
-    const eth = (window as any).ethereum;
+    const eth = window.ethereum;
     if (eth) {
       eth.on("accountsChanged", updateWalletState);
       eth.on("chainChanged", updateWalletState);

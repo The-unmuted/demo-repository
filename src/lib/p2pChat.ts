@@ -19,10 +19,25 @@ const PEERS = [
 ];
 
 // Lazily initialised singleton
-let _gun: any = null;
+type GunChain = {
+  get: (key: string) => GunChain;
+  put: (data: Record<string, unknown>) => void;
+  map: () => GunChain;
+  on: (callback: (data: unknown) => void) => void;
+};
+
+let _gun: GunChain | null = null;
 function getGun() {
   if (!_gun) _gun = Gun({ peers: PEERS, localStorage: false });
   return _gun;
+}
+
+function isChatPayload(data: unknown): data is { id: string; alias: string; text: string; ts?: number } {
+  if (typeof data !== "object" || data === null) return false;
+  const payload = data as Record<string, unknown>;
+  return typeof payload.id === "string"
+    && typeof payload.alias === "string"
+    && typeof payload.text === "string";
 }
 
 // ── Crypto helpers ─────────────────────────────────────────────────────────────
@@ -126,8 +141,8 @@ export function subscribeRoom(
       .get(roomCode)
       .get("msgs")
       .map()
-      .on(async (data: any) => {
-        if (!active || !data?.id || seen.has(data.id)) return;
+      .on(async (data) => {
+        if (!active || !isChatPayload(data) || seen.has(data.id)) return;
         seen.add(data.id);
 
         try {

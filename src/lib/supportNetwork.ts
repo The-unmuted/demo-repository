@@ -15,7 +15,14 @@ const PEERS = [
   "https://gun-manhattan.herokuapp.com/gun",
   "https://peer.wallie.io/gun",
 ];
-let _gun: any = null;
+type GunChain = {
+  get: (key: string) => GunChain;
+  put: (data: Record<string, unknown>) => void;
+  map: () => GunChain;
+  on: (callback: (data: unknown) => void) => void;
+};
+
+let _gun: GunChain | null = null;
 function getGun() {
   if (!_gun) _gun = Gun({ peers: PEERS, localStorage: false });
   return _gun;
@@ -39,24 +46,124 @@ export interface HelpRequest {
   expiresAt:    number;
 }
 
+function isRequestPayload(data: unknown): data is {
+  id: string;
+  helpType?: HelpType;
+  supportTypes?: string;
+  locationHint?: string;
+  roomCode?: string;
+  createdAt?: number;
+  expiresAt?: number;
+} {
+  if (typeof data !== "object" || data === null) return false;
+  const payload = data as Record<string, unknown>;
+  return typeof payload.id === "string";
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 export const HELP_TYPE_CONFIG: {
-  id: HelpType; label: string; icon: string; desc: string;
+  id: HelpType;
+  label: string;
+  labelEn: string;
+  labelZh: string;
+  icon: string;
+  desc: string;
+  descEn: string;
+  descZh: string;
 }[] = [
-  { id: "stalking",      label: "跟踪骚扰",   icon: "👣", desc: "被人跟踪或监视" },
-  { id: "address-leak",  label: "信息泄露",   icon: "🔓", desc: "个人信息被暴露或泄露" },
-  { id: "harassment",    label: "骚扰威胁",   icon: "⚠️", desc: "受到骚扰、威胁或恐吓" },
-  { id: "unsafe",        label: "感到不安全", icon: "😰", desc: "当前环境令我感到不安" },
-  { id: "shelter",       label: "需要安全空间", icon: "🏠", desc: "需要临时安全的去处" },
+  {
+    id: "stalking",
+    label: "跟踪骚扰",
+    labelEn: "Stalking",
+    labelZh: "跟踪骚扰",
+    icon: "👣",
+    desc: "被人跟踪或监视",
+    descEn: "Someone is following or watching me",
+    descZh: "被人跟踪或监视",
+  },
+  {
+    id: "address-leak",
+    label: "信息泄露",
+    labelEn: "Info leaked",
+    labelZh: "信息泄露",
+    icon: "🔓",
+    desc: "个人信息被暴露或泄露",
+    descEn: "My personal information was exposed",
+    descZh: "个人信息被暴露或泄露",
+  },
+  {
+    id: "harassment",
+    label: "骚扰威胁",
+    labelEn: "Harassment",
+    labelZh: "骚扰威胁",
+    icon: "⚠️",
+    desc: "受到骚扰、威胁或恐吓",
+    descEn: "I am being harassed or threatened",
+    descZh: "受到骚扰、威胁或恐吓",
+  },
+  {
+    id: "unsafe",
+    label: "感到不安全",
+    labelEn: "Feeling unsafe",
+    labelZh: "感到不安全",
+    icon: "😰",
+    desc: "当前环境令我感到不安",
+    descEn: "My current situation feels unsafe",
+    descZh: "当前环境令我感到不安",
+  },
+  {
+    id: "shelter",
+    label: "需要安全空间",
+    labelEn: "Need safe space",
+    labelZh: "需要安全空间",
+    icon: "🏠",
+    desc: "需要临时安全的去处",
+    descEn: "I need a temporary safe place",
+    descZh: "需要临时安全的去处",
+  },
 ];
 
 export const SUPPORT_TYPE_CONFIG: {
-  id: SupportType; label: string; icon: string; desc: string;
+  id: SupportType;
+  label: string;
+  labelEn: string;
+  labelZh: string;
+  icon: string;
+  desc: string;
+  descEn: string;
+  descZh: string;
 }[] = [
-  { id: "emotional", label: "情绪支持", icon: "💙", desc: "倾听、陪伴与安慰" },
-  { id: "physical",  label: "陪同接应", icon: "🤝", desc: "线下陪同或安全接应" },
-  { id: "info",      label: "信息建议", icon: "💡", desc: "法律、安全或翻译建议" },
+  {
+    id: "emotional",
+    label: "情绪支持",
+    labelEn: "Emotional support",
+    labelZh: "情绪支持",
+    icon: "💙",
+    desc: "倾听、陪伴与安慰",
+    descEn: "Listening, reassurance, and company",
+    descZh: "倾听、陪伴与安慰",
+  },
+  {
+    id: "physical",
+    label: "陪同接应",
+    labelEn: "Accompaniment",
+    labelZh: "陪同接应",
+    icon: "🤝",
+    desc: "线下陪同或安全接应",
+    descEn: "In-person accompaniment or pickup",
+    descZh: "线下陪同或安全接应",
+  },
+  {
+    id: "info",
+    label: "信息建议",
+    labelEn: "Practical advice",
+    labelZh: "信息建议",
+    icon: "💡",
+    desc: "法律、安全或翻译建议",
+    descEn: "Legal, safety, or translation guidance",
+    descZh: "法律、安全或翻译建议",
+  },
 ];
 
 // ── Supporter mode ─────────────────────────────────────────────────────────────
@@ -120,8 +227,8 @@ export function subscribeHelpRequests(
     getGun()
       .get(REQUESTS_NS)
       .map()
-      .on((data: any) => {
-        if (!active || !data?.id || seen.has(data.id)) return;
+      .on((data) => {
+        if (!active || !isRequestPayload(data) || seen.has(data.id)) return;
         if ((data.expiresAt ?? 0) < Date.now()) return;
         seen.add(data.id);
         try {
@@ -129,7 +236,7 @@ export function subscribeHelpRequests(
             id:           data.id,
             helpType:     data.helpType as HelpType,
             supportTypes: JSON.parse(data.supportTypes ?? "[]") as SupportType[],
-            locationHint: data.locationHint ?? "未知区域",
+            locationHint: data.locationHint ?? "Unknown area",
             roomCode:     data.roomCode,
             createdAt:    data.createdAt,
             expiresAt:    data.expiresAt,
@@ -146,18 +253,20 @@ export function subscribeHelpRequests(
 }
 
 /** Get a fuzzy location string (city-level, ~11 km grid). */
-export async function getFuzzyLocation(): Promise<string> {
+export async function getFuzzyLocation(language: "en" | "zh" = "zh"): Promise<string> {
+  const currentArea = language === "zh" ? "当前区域" : "Current area";
   return new Promise((resolve) => {
-    if (!navigator.geolocation) { resolve("当前区域"); return; }
+    if (!navigator.geolocation) { resolve(currentArea); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = Math.round(pos.coords.latitude  * 10) / 10;
         const lng = Math.round(pos.coords.longitude * 10) / 10;
         const ns  = lat >= 0 ? "N" : "S";
         const ew  = lng >= 0 ? "E" : "W";
-        resolve(`附近区域 (${Math.abs(lat).toFixed(1)}°${ns}, ${Math.abs(lng).toFixed(1)}°${ew})`);
+        const prefix = language === "zh" ? "附近区域" : "Nearby area";
+        resolve(`${prefix} (${Math.abs(lat).toFixed(1)}°${ns}, ${Math.abs(lng).toFixed(1)}°${ew})`);
       },
-      () => resolve("当前区域"),
+      () => resolve(currentArea),
       { enableHighAccuracy: false, timeout: 5000 }
     );
   });

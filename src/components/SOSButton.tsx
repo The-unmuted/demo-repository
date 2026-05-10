@@ -4,8 +4,11 @@ import { Check, Loader2, AlertTriangle } from "lucide-react";
 import { Contract } from "ethers";
 import { playBeep, startDeterrentAudio, stopDeterrentAudio, isDeterrentPlaying_ } from "@/lib/audio";
 import { addSOSHistory } from "@/lib/localStorage";
+import { recordEmergencyMapAlert, reportZone } from "@/lib/geoAlert";
+import { canPublishMapAlert } from "@/lib/reportTrust";
 import { useOfflineBuffer } from "@/hooks/useOfflineBuffer";
 import { shortenHash } from "@/hooks/useWallet";
+import { AppLanguage, copyFor } from "@/lib/locale";
 import { toast } from "sonner";
 
 type SOSState = "idle" | "pressing" | "loading" | "success" | "offline";
@@ -17,6 +20,7 @@ interface SOSButtonProps {
   isSilent: boolean;
   voiceDeterrent: boolean;
   customAudioUrl: string | null;
+  language: AppLanguage;
 }
 
 export default function SOSButton({
@@ -26,6 +30,7 @@ export default function SOSButton({
   isSilent,
   voiceDeterrent,
   customAudioUrl,
+  language,
 }: SOSButtonProps) {
   const [state, setState] = useState<SOSState>("idle");
   const [progress, setProgress] = useState(0);
@@ -81,13 +86,22 @@ export default function SOSButton({
 
     // Start deterrent audio if sound is on
     if (voiceDeterrent && !isSilent) {
-      startDeterrentAudio(customAudioUrl);
+      startDeterrentAudio(customAudioUrl, language);
       setShowSafeButton(true);
     }
 
-    if (contract && isWalletConnected && isCorrectNetwork) {
+    const canPublish = canPublishMapAlert();
+    if (lat !== 0 || lng !== 0) {
+      recordEmergencyMapAlert(lat, lng);
+    }
+
+    if (canPublish && (lat !== 0 || lng !== 0)) {
+      void reportZone(lat, lng, "emergency");
+    }
+
+    if (contract && isWalletConnected && isCorrectNetwork && canPublish) {
       try {
-        if (!isSilent) toast("正在上链...");
+        if (!isSilent) toast(copyFor(language, "Uploading on-chain...", "正在上链..."));
         const tx = await contract.triggerSOS(latInt, lngInt, "");
         const receipt = await tx.wait();
         const hash = receipt.hash || tx.hash;
@@ -102,7 +116,7 @@ export default function SOSButton({
           status: "success",
         });
 
-        if (!isSilent) toast.success("✅ 已安全存证");
+        if (!isSilent) toast.success(copyFor(language, "✅ Evidence secured", "✅ 已安全存证"));
         return;
       } catch {
         // Fall through to offline
@@ -111,8 +125,16 @@ export default function SOSButton({
 
     addRecord(lat, lng);
     setState("offline");
-    if (!isSilent) toast("⚠️ 已本地存储，等待网络恢复");
-  }, [contract, isWalletConnected, isCorrectNetwork, isSilent, voiceDeterrent, customAudioUrl, addRecord]);
+    if (!isSilent) {
+      toast(canPublish
+        ? copyFor(language, "⚠️ Saved locally. Waiting for network recovery.", "⚠️ 已本地存储，等待网络恢复")
+        : copyFor(
+            language,
+            "Saved privately. Public map alert needs stronger account trust.",
+            "已私密保存。公开地图预警需要更高账户可信度。"
+          ));
+    }
+  }, [contract, isWalletConnected, isCorrectNetwork, isSilent, voiceDeterrent, customAudioUrl, addRecord, language]);
 
   const handlePointerDown = useCallback(() => {
     if (state === "loading" || state === "success") return;
@@ -182,7 +204,7 @@ export default function SOSButton({
   }[state];
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4">
+    <div className="flex w-full flex-col items-center justify-center px-1">
       <div
         id="screen-flash"
         className="pointer-events-none fixed inset-0 z-[100] bg-primary opacity-0 transition-opacity"
@@ -210,8 +232,10 @@ export default function SOSButton({
           <AnimatePresence mode="wait">
             {state === "idle" && (
               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
-                <span className="text-5xl font-black tracking-wider text-primary-foreground">SOS</span>
-                <span className="text-lg font-bold text-primary-foreground/90">紧急求救 Emergency</span>
+                <span className="text-5xl font-black tracking-[0.2em] text-primary-foreground">SOS</span>
+                <span className="text-lg font-bold text-primary-foreground/90">
+                  {copyFor(language, "Emergency Report", "紧急上报")}
+                </span>
               </motion.div>
             )}
             {state === "pressing" && (
@@ -223,13 +247,17 @@ export default function SOSButton({
             {state === "loading" && (
               <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <Loader2 className="h-14 w-14 animate-spin text-primary-foreground" />
-                <span className="text-sm font-medium text-primary-foreground/80">正在上链 Uploading...</span>
+                <span className="text-sm font-medium text-primary-foreground/80">
+                  {copyFor(language, "Uploading...", "正在上链...")}
+                </span>
               </motion.div>
             )}
             {state === "success" && (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <Check className="h-16 w-16 text-primary-foreground" strokeWidth={3} />
-                <span className="text-lg font-bold text-primary-foreground">已安全存证 Secured</span>
+                <span className="text-lg font-bold text-primary-foreground">
+                  {copyFor(language, "Secured", "已安全存证")}
+                </span>
                 {txHash && (
                   <a href={`https://testnet.snowtrace.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
                     className="font-mono text-xs text-primary-foreground/70 underline" onClick={(e) => e.stopPropagation()}>
@@ -241,8 +269,12 @@ export default function SOSButton({
             {state === "offline" && (
               <motion.div key="offline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-2">
                 <AlertTriangle className="h-14 w-14 text-background" />
-                <span className="text-base font-bold text-background">已本地存储 Saved Offline</span>
-                <span className="text-xs text-background/70">等待网络恢复 Waiting for network</span>
+                <span className="text-base font-bold text-background">
+                  {copyFor(language, "Saved Offline", "已本地存储")}
+                </span>
+                <span className="text-xs text-background/70">
+                  {copyFor(language, "Waiting for network", "等待网络恢复")}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -250,11 +282,11 @@ export default function SOSButton({
       </motion.button>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        {state === "idle" && "长按 3 秒触发 · Hold for 3 seconds"}
-        {state === "pressing" && "继续按住... · Keep holding"}
-        {state === "loading" && "正在获取位置并上链 · Getting location and uploading"}
-        {state === "success" && "存证已完成并安全保存 · Report secured"}
-        {state === "offline" && "离线，数据已暂存本地 · Offline, saved locally"}
+        {state === "idle" && copyFor(language, "Hold for 3 seconds", "长按 3 秒触发")}
+        {state === "pressing" && copyFor(language, "Keep holding", "继续按住...")}
+        {state === "loading" && copyFor(language, "Getting location and uploading", "正在获取位置并上链")}
+        {state === "success" && copyFor(language, "Report secured", "存证已完成并安全保存")}
+        {state === "offline" && copyFor(language, "Offline, saved locally", "离线，数据已暂存本地")}
       </p>
 
       <AnimatePresence>
@@ -264,7 +296,7 @@ export default function SOSButton({
             onClick={handleSafe}
             className="mt-6 rounded-full bg-sos-success px-8 py-3 text-base font-bold text-primary-foreground"
           >
-            我已安全 I’m Safe
+            {copyFor(language, "I'm Safe", "我已安全")}
           </motion.button>
         )}
       </AnimatePresence>

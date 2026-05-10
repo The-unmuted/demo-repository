@@ -3,6 +3,7 @@ import { encryptFile, buildKeyBundle, downloadKeyBundle, type EncryptionResult }
 import { uploadToArweave, type ArweaveUploadResult } from '@/lib/arweaveService';
 import { anchorOnChain, type AnchorResult } from '@/lib/evidenceContract';
 import { addVaultRecord, loadVaultRecords, type VaultRecord } from '@/lib/localStorage';
+import { AppLanguage, copyFor } from '@/lib/locale';
 
 export type VaultStep = 'idle' | 'encrypting' | 'uploading' | 'anchoring' | 'done' | 'error';
 
@@ -17,7 +18,7 @@ export interface VaultResult {
   encryptionResult: EncryptionResult;
 }
 
-export function useEvidenceVault() {
+export function useEvidenceVault(language: AppLanguage = 'en') {
   const [step, setStep] = useState<VaultStep>('idle');
   const [steps, setSteps] = useState<VaultStepStatus>({
     encrypting: 'pending',
@@ -51,7 +52,7 @@ export function useEvidenceVault() {
       setStepStatus('encrypting', 'done');
     } catch (e) {
       setStepStatus('encrypting', 'error');
-      setError('加密失败：' + (e instanceof Error ? e.message : String(e)));
+      setError(copyFor(language, 'Encryption failed: ', '加密失败：') + (e instanceof Error ? e.message : String(e)));
       setStep('error');
       return;
     }
@@ -68,7 +69,7 @@ export function useEvidenceVault() {
       setStepStatus('uploading', 'done');
     } catch (e) {
       setStepStatus('uploading', 'error');
-      setError('Arweave 上传失败：' + (e instanceof Error ? e.message : String(e)));
+      setError(copyFor(language, 'Arweave upload failed: ', 'Arweave 上传失败：') + (e instanceof Error ? e.message : String(e)));
       setStep('error');
       return;
     }
@@ -81,7 +82,7 @@ export function useEvidenceVault() {
       setStepStatus('anchoring', 'done');
     } catch (e) {
       setStepStatus('anchoring', 'error');
-      setError('链上存证失败：' + (e instanceof Error ? e.message : String(e)));
+      setError(copyFor(language, 'On-chain anchoring failed: ', '链上存证失败：') + (e instanceof Error ? e.message : String(e)));
       setStep('error');
       return;
     }
@@ -106,13 +107,13 @@ export function useEvidenceVault() {
     setHistory(loadVaultRecords());
     setResult({ record, encryptionResult: encResult });
     setStep('done');
-  }, []);
+  }, [language]);
 
   const downloadKey = useCallback(() => {
     if (!latestResult.current || !result) return;
     const bundle = buildKeyBundle(latestResult.current);
     const ts = new Date(result.record.createdAt).toISOString().slice(0, 10);
-    downloadKeyBundle(bundle, `hera-key-${ts}.json`);
+    downloadKeyBundle(bundle, `the-unmuted-key-${ts}.json`);
   }, [result]);
 
   const reset = useCallback(() => {

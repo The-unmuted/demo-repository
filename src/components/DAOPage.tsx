@@ -5,12 +5,12 @@
  * Treasury header always visible.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, ThumbsUp, ThumbsDown, ShieldCheck, Loader2,
   CheckCircle2, Clock, Coins, ArrowLeft, ChevronRight,
-  BadgeCheck, X,
+  BadgeCheck, X, UploadCloud, FileCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useZKPIdentity } from "@/hooks/useZKPIdentity";
@@ -24,14 +24,126 @@ import {
   computeVoteStats, hasVoted, hashNullifier,
   timeAgo, daysLeft,
 } from "@/lib/daoGovernance";
+import { AppLanguage, copyFor } from "@/lib/locale";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type InnerTab = "proposals" | "experts";
+type Filter = "active" | "passed" | "funded";
+
+const TABS = [
+  { id: "proposals" as const, english: "Proposals", chinese: "提案投票" },
+  { id: "experts" as const, english: "Experts", chinese: "专家委员会" },
+] as const;
+
+const SEED_PROPOSAL_COPY: Record<string, {
+  titleEn: string;
+  titleZh: string;
+  descriptionEn: string;
+  descriptionZh: string;
+  aliasEn: string;
+  aliasZh: string;
+}> = {
+  "seed-001": {
+    titleEn: "Protection order legal assistance",
+    titleZh: "骚扰令法律协助申请",
+    descriptionEn: "Needs lawyer support to apply for a personal protection order. The harasser continues to stalk them, with repeated incidents already secured in the evidence vault. Requests DAO legal aid funding.",
+    descriptionZh: "需要律师协助申请人身保护令。骚扰者持续跟踪，已有多次骚扰记录并在证据库存证。请求 DAO 提供法律援助资金。",
+    aliasEn: "Silent Bluebird",
+    aliasZh: "沉默蓝鸟",
+  },
+  "seed-002": {
+    titleEn: "Post-trauma counseling support",
+    titleZh: "创伤后心理康复支援",
+    descriptionEn: "Seeking professional counseling after long-term domestic violence. Needs three months of recovery support and cannot cover the cost alone.",
+    descriptionZh: "经历长期家暴后寻求专业心理咨询。需要持续 3 个月的康复疗程支持，无力独自承担费用。",
+    aliasEn: "Distant Rose",
+    aliasZh: "远山蔷薇",
+  },
+  "seed-003": {
+    titleEn: "Create a community safety playbook",
+    titleZh: "制定社区安全行动手册",
+    descriptionEn: "Proposal to create a safety guide for community members, including response steps and resource lists for stalking or harassment.",
+    descriptionZh: "提案建立一份面向社区成员的安全指南，包含遭遇跟踪、骚扰时的应对步骤与资源清单。",
+    aliasEn: "Starlit Traveler",
+    aliasZh: "星野旅人",
+  },
+};
+
+const ALIAS_COPY: Record<string, { en: string; zh: string }> = {
+  "沉默红枫": { en: "Silent Maple", zh: "沉默红枫" },
+  "Silent Maple": { en: "Silent Maple", zh: "沉默红枫" },
+  "远山蔷薇": { en: "Distant Rose", zh: "远山蔷薇" },
+  "Distant Rose": { en: "Distant Rose", zh: "远山蔷薇" },
+  "星野旅人": { en: "Starlit Traveler", zh: "星野旅人" },
+  "Starlit Traveler": { en: "Starlit Traveler", zh: "星野旅人" },
+};
+
+function proposalTypeLabel(type: ProposalType | undefined, language: AppLanguage) {
+  const config = PROPOSAL_TYPE_CONFIG.find(c => c.id === type);
+  return config ? copyFor(language, config.labelEn, config.labelZh) : "";
+}
+
+function sbtLabel(type: SBTType | undefined, language: AppLanguage) {
+  const config = SBT_TYPE_CONFIG.find(c => c.id === type);
+  return config ? copyFor(language, config.labelEn, config.labelZh) : "";
+}
+
+function sbtDesc(type: SBTType | undefined, language: AppLanguage) {
+  const config = SBT_TYPE_CONFIG.find(c => c.id === type);
+  return config ? copyFor(language, config.descEn, config.descZh) : "";
+}
+
+function statusLabel(status: Proposal["status"], language: AppLanguage) {
+  const labels = {
+    active: copyFor(language, "Active", "进行中"),
+    passed: copyFor(language, "Passed", "已通过"),
+    rejected: copyFor(language, "Rejected", "未通过"),
+    funded: copyFor(language, "Funded", "已拨付"),
+  };
+  return labels[status];
+}
+
+function daysLeftLabel(expiresAt: number, language: AppLanguage) {
+  const days = daysLeft(expiresAt);
+  return copyFor(language, `${days}d left`, `${days} 天剩余`);
+}
+
+function emptyProposalLabel(filter: Filter, language: AppLanguage) {
+  if (filter === "active") return copyFor(language, "No active proposals", "暂无进行中的提案");
+  if (filter === "passed") return copyFor(language, "No passed proposals", "暂无已通过的提案");
+  return copyFor(language, "No funded proposals", "暂无已拨付的提案");
+}
+
+function proposalTitle(proposal: Proposal, language: AppLanguage) {
+  const seedCopy = SEED_PROPOSAL_COPY[proposal.id];
+  return language === "zh"
+    ? proposal.titleZh ?? seedCopy?.titleZh ?? proposal.title
+    : proposal.titleEn ?? seedCopy?.titleEn ?? proposal.title;
+}
+
+function proposalDescription(proposal: Proposal, language: AppLanguage) {
+  const seedCopy = SEED_PROPOSAL_COPY[proposal.id];
+  return language === "zh"
+    ? proposal.descriptionZh ?? seedCopy?.descriptionZh ?? proposal.description
+    : proposal.descriptionEn ?? seedCopy?.descriptionEn ?? proposal.description;
+}
+
+function proposalAlias(proposal: Proposal, language: AppLanguage) {
+  const seedCopy = SEED_PROPOSAL_COPY[proposal.id];
+  return language === "zh"
+    ? proposal.proposerAliasZh ?? seedCopy?.aliasZh ?? ALIAS_COPY[proposal.proposerAlias]?.zh ?? proposal.proposerAlias
+    : proposal.proposerAliasEn ?? seedCopy?.aliasEn ?? ALIAS_COPY[proposal.proposerAlias]?.en ?? proposal.proposerAlias;
+}
+
+function displayAlias(alias: string, language: AppLanguage) {
+  const copy = ALIAS_COPY[alias];
+  return copy ? copyFor(language, copy.en, copy.zh) : alias;
+}
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function DAOPage() {
+export default function DAOPage({ language }: { language: AppLanguage }) {
   const [tab, setTab] = useState<InnerTab>("proposals");
   const zkp = useZKPIdentity();
 
@@ -41,16 +153,11 @@ export default function DAOPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Treasury header */}
-      <TreasuryCard />
+      <TreasuryCard language={language} />
 
       {/* Inner tabs */}
       <div className="flex shrink-0 border-b border-border">
-        {(
-          [
-            { id: "proposals" as const, label: "提案投票", english: "Proposals" },
-            { id: "experts"   as const, label: "专家委员会", english: "Experts" },
-          ] as const
-        ).map(t => (
+        {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -60,8 +167,7 @@ export default function DAOPage() {
                 : "text-muted-foreground"
             }`}
           >
-            <span>{t.label}</span>
-            <span className="ml-1 text-[10px] font-normal opacity-80">{t.english}</span>
+            <span>{copyFor(language, t.english, t.chinese)}</span>
           </button>
         ))}
       </div>
@@ -70,12 +176,12 @@ export default function DAOPage() {
         <AnimatePresence mode="wait">
           {tab === "proposals" && (
             <Pane key="proposals">
-              <ProposalsTab zkp={zkp} />
+              <ProposalsTab zkp={zkp} language={language} />
             </Pane>
           )}
           {tab === "experts" && (
             <Pane key="experts">
-              <ExpertsTab zkp={zkp} />
+              <ExpertsTab zkp={zkp} language={language} />
             </Pane>
           )}
         </AnimatePresence>
@@ -100,7 +206,7 @@ function Pane({ children }: { children: React.ReactNode }) {
 
 // ── Treasury card ──────────────────────────────────────────────────────────────
 
-function TreasuryCard() {
+function TreasuryCard({ language }: { language: AppLanguage }) {
   const used  = TREASURY.total - TREASURY.legal - TREASURY.psych - TREASURY.ops + 300; // seed-001 funded
   const pct   = Math.round((used / TREASURY.total) * 100);
 
@@ -109,9 +215,13 @@ function TreasuryCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Coins className="h-4 w-4 text-yellow-400" />
-          <span className="text-xs font-semibold text-muted-foreground">社区金库</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {copyFor(language, "Community Treasury", "社区金库")}
+          </span>
         </div>
-        <span className="text-[11px] text-muted-foreground">Solana · 透明可查</span>
+        <span className="text-[11px] text-muted-foreground">
+          {copyFor(language, "Solana · Transparent", "Solana · 透明可查")}
+        </span>
       </div>
 
       <div>
@@ -130,17 +240,23 @@ function TreasuryCard() {
           />
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>已使用 {pct}%</span>
-          <span>剩余 {(TREASURY.total - used).toLocaleString()} {TREASURY.symbol}</span>
+          <span>{copyFor(language, `${pct}% used`, `已使用 ${pct}%`)}</span>
+          <span>
+            {copyFor(
+              language,
+              `${(TREASURY.total - used).toLocaleString()} ${TREASURY.symbol} left`,
+              `剩余 ${(TREASURY.total - used).toLocaleString()} ${TREASURY.symbol}`
+            )}
+          </span>
         </div>
       </div>
 
       {/* Allocation breakdown */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: "法律援助", amount: TREASURY.legal,  color: "bg-blue-400/20 text-blue-400" },
-          { label: "心理援助", amount: TREASURY.psych,  color: "bg-purple-400/20 text-purple-400" },
-          { label: "运营储备", amount: TREASURY.ops,    color: "bg-emerald-400/20 text-emerald-400" },
+          { label: copyFor(language, "Legal aid", "法律援助"), amount: TREASURY.legal,  color: "bg-blue-400/20 text-blue-400" },
+          { label: copyFor(language, "Mental health", "心理援助"), amount: TREASURY.psych,  color: "bg-purple-400/20 text-purple-400" },
+          { label: copyFor(language, "Operations", "运营储备"), amount: TREASURY.ops,    color: "bg-emerald-400/20 text-emerald-400" },
         ].map(item => (
           <div key={item.label} className="rounded-xl bg-card/50 border border-border px-2.5 py-2 text-center">
             <p className={`text-xs font-bold ${item.color.split(" ")[1]}`}>{item.amount}</p>
@@ -154,9 +270,13 @@ function TreasuryCard() {
 
 // ── Proposals Tab ──────────────────────────────────────────────────────────────
 
-type Filter = "active" | "passed" | "funded";
-
-function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
+function ProposalsTab({
+  zkp,
+  language,
+}: {
+  zkp: ReturnType<typeof useZKPIdentity>;
+  language: AppLanguage;
+}) {
   const [proposals,  setProposals]  = useState<Proposal[]>(() => loadLocalProposals());
   const [filter,     setFilter]     = useState<Filter>("active");
   const [detail,     setDetail]     = useState<Proposal | null>(null);
@@ -184,6 +304,7 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
       <ProposalDetail
         proposal={detail}
         zkp={zkp}
+        language={language}
         onBack={() => setDetail(null)}
       />
     );
@@ -195,9 +316,9 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
       <div className="flex gap-2">
         {(
           [
-            { id: "active" as Filter, label: "进行中" },
-            { id: "passed" as Filter, label: "已通过" },
-            { id: "funded" as Filter, label: "已拨付" },
+            { id: "active" as Filter },
+            { id: "passed" as Filter },
+            { id: "funded" as Filter },
           ]
         ).map(f => (
           <button
@@ -209,7 +330,7 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
                 : "bg-card border border-border text-muted-foreground"
             }`}
           >
-            {f.label}
+            {statusLabel(f.id, language)}
             {f.id === "active" && (
               <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground/20 text-[10px] font-bold">
                 {proposals.filter(p => p.status === "active").length}
@@ -223,13 +344,14 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
       <div className="space-y-3">
         {filtered.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-            <p className="text-sm">暂无{filter === "active" ? "进行中的" : filter === "passed" ? "已通过的" : "已拨付的"}提案</p>
+            <p className="text-sm">{emptyProposalLabel(filter, language)}</p>
           </div>
         )}
         {filtered.map(p => (
           <ProposalCard
             key={p.id}
             proposal={p}
+            language={language}
             onTap={() => setDetail(p)}
           />
         ))}
@@ -241,7 +363,7 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
         className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-primary/5 py-3.5 text-sm font-semibold text-primary active:scale-[0.98] transition-transform"
       >
         <Plus className="h-4 w-4" />
-        发起新提案
+        {copyFor(language, "Create proposal", "发起新提案")}
       </button>
 
       {/* Create sheet */}
@@ -249,11 +371,12 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
         {showCreate && (
           <CreateProposalSheet
             zkp={zkp}
+            language={language}
             onClose={() => setShowCreate(false)}
             onCreate={(p) => {
               setProposals(prev => [p, ...prev]);
               setShowCreate(false);
-              toast.success("提案已提交，等待社区投票");
+              toast.success(copyFor(language, "Proposal submitted. Waiting for community vote.", "提案已提交，等待社区投票"));
             }}
           />
         )}
@@ -264,7 +387,15 @@ function ProposalsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
 
 // ── Proposal card ──────────────────────────────────────────────────────────────
 
-function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => void }) {
+function ProposalCard({
+  proposal,
+  language,
+  onTap,
+}: {
+  proposal: Proposal;
+  language: AppLanguage;
+  onTap: () => void;
+}) {
   const [votes, setVotes] = useState<VoteRecord[]>(() => loadLocalVotes(proposal.id));
   const typeConfig = PROPOSAL_TYPE_CONFIG.find(c => c.id === proposal.type)!;
   const stats      = computeVoteStats(votes);
@@ -280,10 +411,10 @@ function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => vo
   }, [proposal.id]);
 
   const statusBadge: Record<string, { label: string; cls: string }> = {
-    active:  { label: "进行中",   cls: "bg-primary/15 text-primary" },
-    passed:  { label: "已通过",   cls: "bg-emerald-500/15 text-emerald-400" },
-    rejected:{ label: "未通过",   cls: "bg-muted/50 text-muted-foreground" },
-    funded:  { label: "已拨付 ✓", cls: "bg-yellow-400/15 text-yellow-400" },
+    active:  { label: statusLabel("active", language), cls: "bg-primary/15 text-primary" },
+    passed:  { label: statusLabel("passed", language), cls: "bg-emerald-500/15 text-emerald-400" },
+    rejected:{ label: statusLabel("rejected", language), cls: "bg-muted/50 text-muted-foreground" },
+    funded:  { label: copyFor(language, "Funded ✓", "已拨付 ✓"), cls: "bg-yellow-400/15 text-yellow-400" },
   };
   const badge = statusBadge[proposal.status] ?? statusBadge.active;
 
@@ -297,13 +428,13 @@ function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => vo
         <span className="text-2xl">{typeConfig.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-semibold ${typeConfig.color}`}>{typeConfig.label}</span>
+            <span className={`text-xs font-semibold ${typeConfig.color}`}>{proposalTypeLabel(proposal.type, language)}</span>
             {proposal.amountRequested > 0 && (
               <span className="text-xs text-muted-foreground">· {proposal.amountRequested} {TREASURY.symbol}</span>
             )}
           </div>
-          <p className="mt-0.5 text-sm font-bold text-foreground leading-snug">{proposal.title}</p>
-          <p className="text-[11px] text-muted-foreground">{proposal.proposerAlias} · {timeAgo(proposal.createdAt)}</p>
+          <p className="mt-0.5 text-sm font-bold text-foreground leading-snug">{proposalTitle(proposal, language)}</p>
+          <p className="text-[11px] text-muted-foreground">{proposalAlias(proposal, language)} · {timeAgo(proposal.createdAt, language)}</p>
         </div>
         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${badge.cls}`}>
           {badge.label}
@@ -329,12 +460,13 @@ function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => vo
           </span>
           {stats.expertYes > 0 && (
             <span className="flex items-center gap-1 text-yellow-400">
-              <BadgeCheck className="h-3 w-3" />{stats.expertYes} 专家背书
+              <BadgeCheck className="h-3 w-3" />
+              {copyFor(language, `${stats.expertYes} expert endorsements`, `${stats.expertYes} 专家背书`)}
             </span>
           )}
           <span className="ml-auto flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {proposal.status === "active" ? `${daysLeft(proposal.expiresAt)} 天剩余` : "已结束"}
+            {proposal.status === "active" ? daysLeftLabel(proposal.expiresAt, language) : copyFor(language, "Ended", "已结束")}
           </span>
         </div>
       </div>
@@ -342,7 +474,7 @@ function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => vo
       <div className="flex items-center justify-between">
         {proposal.evidenceHash && (
           <span className="font-mono text-[10px] text-muted-foreground/60">
-            证据哈希: {proposal.evidenceHash.slice(0, 14)}…
+            {copyFor(language, "Evidence hash", "证据哈希")}: {proposal.evidenceHash.slice(0, 14)}…
           </span>
         )}
         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
@@ -354,10 +486,11 @@ function ProposalCard({ proposal, onTap }: { proposal: Proposal; onTap: () => vo
 // ── Proposal detail + voting ───────────────────────────────────────────────────
 
 function ProposalDetail({
-  proposal, zkp, onBack,
+  proposal, zkp, language, onBack,
 }: {
   proposal: Proposal;
   zkp: ReturnType<typeof useZKPIdentity>;
+  language: AppLanguage;
   onBack: () => void;
 }) {
   const [votes,      setVotes]      = useState<VoteRecord[]>(() => loadLocalVotes(proposal.id));
@@ -387,14 +520,14 @@ function ProposalDetail({
 
   const handleVote = async (choice: "yes" | "no") => {
     if (!zkp.identity) {
-      toast("请先在「互助」标签生成匿名身份");
+      toast(copyFor(language, "Create an anonymous identity in Circle first.", "请先在「互助」标签生成匿名身份"));
       return;
     }
     setVoting(true);
     try {
       const voterHash = await hashNullifier(zkp.identity.nullifier);
       if (hasVoted(proposal.id, voterHash)) {
-        toast("你已投过票");
+        toast(copyFor(language, "You already voted.", "你已投过票"));
         return;
       }
       // Check if user holds SBT
@@ -416,7 +549,9 @@ function ProposalDetail({
         return Array.from(map.values());
       });
       setAlreadyVoted(true);
-      toast.success(choice === "yes" ? "✅ 已投支持票" : "已投反对票");
+      toast.success(choice === "yes"
+        ? copyFor(language, "✅ Support vote submitted", "✅ 已投支持票")
+        : copyFor(language, "Oppose vote submitted", "已投反对票"));
     } finally { setVoting(false); }
   };
 
@@ -431,8 +566,8 @@ function ProposalDetail({
         </button>
         <span className="text-lg">{typeConfig.icon}</span>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-bold text-foreground">{proposal.title}</p>
-          <p className="text-[11px] text-muted-foreground">{typeConfig.label}</p>
+          <p className="truncate text-sm font-bold text-foreground">{proposalTitle(proposal, language)}</p>
+          <p className="text-[11px] text-muted-foreground">{proposalTypeLabel(proposal.type, language)}</p>
         </div>
       </div>
 
@@ -441,62 +576,88 @@ function ProposalDetail({
         <div className="flex flex-wrap gap-2">
           {proposal.status === "active" && (
             <span className="flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">
-              <Clock className="h-3 w-3" /> {daysLeft(proposal.expiresAt)} 天剩余
+              <Clock className="h-3 w-3" /> {daysLeftLabel(proposal.expiresAt, language)}
             </span>
           )}
           {proposal.status === "passed" && (
             <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">
-              ✓ 已通过
+              {copyFor(language, "✓ Passed", "✓ 已通过")}
             </span>
           )}
           {proposal.status === "funded" && (
             <span className="rounded-full bg-yellow-400/15 px-3 py-1 text-xs font-bold text-yellow-400">
-              ✓ 已拨付 {proposal.amountRequested} {TREASURY.symbol}
+              {copyFor(
+                language,
+                `✓ Funded ${proposal.amountRequested} ${TREASURY.symbol}`,
+                `✓ 已拨付 ${proposal.amountRequested} ${TREASURY.symbol}`
+              )}
             </span>
           )}
           {proposal.amountRequested > 0 && proposal.status === "active" && (
             <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-              请求 {proposal.amountRequested} {TREASURY.symbol}
+              {copyFor(
+                language,
+                `Requesting ${proposal.amountRequested} ${TREASURY.symbol}`,
+                `请求 ${proposal.amountRequested} ${TREASURY.symbol}`
+              )}
             </span>
           )}
           <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-            {proposal.proposerAlias}
+            {proposalAlias(proposal, language)}
           </span>
         </div>
 
         {/* Description */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">提案详情</p>
-          <p className="text-sm text-foreground leading-relaxed">{proposal.description}</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            {copyFor(language, "Proposal Details", "提案详情")}
+          </p>
+          <p className="text-sm text-foreground leading-relaxed">{proposalDescription(proposal, language)}</p>
         </div>
 
         {/* Evidence hash */}
         {proposal.evidenceHash && (
           <div className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1">
-            <p className="text-[11px] font-semibold text-muted-foreground">关联证据哈希</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {copyFor(language, "Linked evidence hash", "关联证据哈希")}
+            </p>
             <p className="font-mono text-xs text-foreground break-all">{proposal.evidenceHash}</p>
-            <p className="text-[10px] text-muted-foreground">证据已加密存储于 Arweave + Solana 链上存证</p>
+            <p className="text-[10px] text-muted-foreground">
+              {copyFor(
+                language,
+                "Evidence is encrypted on Arweave and timestamped on Solana.",
+                "证据已加密存储于 Arweave + Solana 链上存证"
+              )}
+            </p>
           </div>
         )}
 
         {/* Vote stats */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground">当前票数</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            {copyFor(language, "Current votes", "当前票数")}
+          </p>
 
           {stats.total === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-2">尚无投票</p>
+            <p className="text-sm text-muted-foreground text-center py-2">
+              {copyFor(language, "No votes yet", "尚无投票")}
+            </p>
           ) : (
             <>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <span className="w-12 text-right text-xs font-bold text-emerald-400">支持 {stats.yes}</span>
+                  <span className="w-12 text-right text-xs font-bold text-emerald-400">
+                    {copyFor(language, `Yes ${stats.yes}`, `支持 ${stats.yes}`)}
+                  </span>
                   <div className="flex-1 h-3 rounded-full bg-border overflow-hidden">
                     <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${yPct}%` }} />
                   </div>
                   <span className="w-8 text-xs text-muted-foreground">{yPct}%</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-12 text-right text-xs font-bold text-primary">反对 {stats.no}</span>
+                  <span className="w-12 text-right text-xs font-bold text-primary">
+                    {copyFor(language, `No ${stats.no}`, `反对 ${stats.no}`)}
+                  </span>
                   <div className="flex-1 h-3 rounded-full bg-border overflow-hidden">
                     <div className="h-full rounded-full bg-primary/60 transition-all" style={{ width: `${100 - yPct}%` }} />
                   </div>
@@ -507,10 +668,11 @@ function ProposalDetail({
               <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
                 {stats.expertYes > 0 && (
                   <span className="flex items-center gap-1 text-yellow-400">
-                    <BadgeCheck className="h-3.5 w-3.5" />{stats.expertYes} 位专家背书
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    {copyFor(language, `${stats.expertYes} expert endorsements`, `${stats.expertYes} 位专家背书`)}
                   </span>
                 )}
-                <span className="ml-auto">共 {stats.total} 票</span>
+                <span className="ml-auto">{copyFor(language, `${stats.total} total votes`, `共 ${stats.total} 票`)}</span>
               </div>
 
               {/* Pass threshold hint */}
@@ -520,8 +682,12 @@ function ProposalDetail({
                   : "bg-border/50 text-muted-foreground"
               }`}>
                 {stats.isPassed
-                  ? "✓ 已达通过门槛（≥60% 支持 + ≥1 专家背书）"
-                  : `通过条件：≥60% 支持票（当前 ${yPct}%）且 ≥1 专家背书（当前 ${stats.expertYes}）`}
+                  ? copyFor(language, "✓ Passing threshold met (>=60% support + >=1 expert endorsement)", "✓ 已达通过门槛（≥60% 支持 + ≥1 专家背书）")
+                  : copyFor(
+                      language,
+                      `Passing needs >=60% support (currently ${yPct}%) and >=1 expert endorsement (currently ${stats.expertYes}).`,
+                      `通过条件：≥60% 支持票（当前 ${yPct}%）且 ≥1 专家背书（当前 ${stats.expertYes}）`
+                    )}
               </div>
             </>
           )}
@@ -532,11 +698,16 @@ function ProposalDetail({
           <div className="space-y-2">
             {alreadyVoted ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4" />你已参与投票
+                <CheckCircle2 className="h-4 w-4" />
+                {copyFor(language, "You already voted", "你已参与投票")}
               </div>
             ) : !zkp.identity ? (
               <div className="rounded-2xl border border-border bg-card px-4 py-3 text-center text-xs text-muted-foreground">
-                请先前往「互助 → 身份」标签生成匿名身份，才能参与投票
+                {copyFor(
+                  language,
+                  "Sign up or sign in before voting.",
+                  "请先完成注册或登录，才能参与投票"
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -546,7 +717,7 @@ function ProposalDetail({
                   className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 py-3.5 text-sm font-bold text-emerald-400 active:scale-95 transition-transform disabled:opacity-50"
                 >
                   {voting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
-                  支持
+                  {copyFor(language, "Support", "支持")}
                 </button>
                 <button
                   onClick={() => handleVote("no")}
@@ -554,12 +725,12 @@ function ProposalDetail({
                   className="flex items-center justify-center gap-2 rounded-2xl bg-card border border-border py-3.5 text-sm font-bold text-muted-foreground active:scale-95 transition-transform disabled:opacity-50"
                 >
                   {voting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="h-4 w-4" />}
-                  反对
+                  {copyFor(language, "Oppose", "反对")}
                 </button>
               </div>
             )}
             <p className="text-center text-[11px] text-muted-foreground">
-              🔒 投票通过 ZKP 匿名凭证，身份不会被公开
+              {copyFor(language, "Votes use ZKP anonymous credentials. Your identity is never public.", "投票通过 ZKP 匿名凭证，身份不会被公开")}
             </p>
           </div>
         )}
@@ -571,9 +742,10 @@ function ProposalDetail({
 // ── Create proposal sheet ──────────────────────────────────────────────────────
 
 function CreateProposalSheet({
-  zkp, onClose, onCreate,
+  zkp, language, onClose, onCreate,
 }: {
   zkp: ReturnType<typeof useZKPIdentity>;
+  language: AppLanguage;
   onClose: () => void;
   onCreate: (p: Proposal) => void;
 }) {
@@ -585,15 +757,21 @@ function CreateProposalSheet({
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!title.trim() || !desc.trim()) { toast("请填写标题和描述"); return; }
-    if (!zkp.identity) { toast("请先生成匿名身份（互助 → 身份）"); return; }
+    if (!title.trim() || !desc.trim()) {
+      toast(copyFor(language, "Please fill in the title and description.", "请填写标题和描述"));
+      return;
+    }
+    if (!zkp.identity) {
+      toast(copyFor(language, "Sign up or sign in before creating a proposal.", "请先完成注册或登录后再发起提案。"));
+      return;
+    }
     setSubmitting(true);
     try {
       const p = createProposal(
         type,
         title.trim(),
         desc.trim(),
-        zkp.alias ?? "匿名用户",
+        zkp.alias ?? copyFor(language, "Anonymous user", "匿名用户"),
         Number(amount) || 0,
         evHash.trim() || undefined
       );
@@ -622,7 +800,9 @@ function CreateProposalSheet({
         <div className="mx-auto h-1 w-10 rounded-full bg-border" />
 
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-foreground">发起提案</h3>
+          <h3 className="font-bold text-foreground">
+            {copyFor(language, "Create Proposal", "发起提案")}
+          </h3>
           <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
         </div>
 
@@ -639,7 +819,7 @@ function CreateProposalSheet({
               }`}
             >
               <span className="text-xl">{c.icon}</span>
-              {c.label}
+              {proposalTypeLabel(c.id, language)}
             </button>
           ))}
         </div>
@@ -647,7 +827,7 @@ function CreateProposalSheet({
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
-          placeholder="提案标题"
+          placeholder={copyFor(language, "Proposal title", "提案标题")}
           maxLength={60}
           className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
         />
@@ -655,7 +835,7 @@ function CreateProposalSheet({
         <textarea
           value={desc}
           onChange={e => setDesc(e.target.value)}
-          placeholder="详细描述你的需求和背景（50字以上）"
+          placeholder={copyFor(language, "Describe your need and background in detail", "详细描述你的需求和背景（50字以上）")}
           rows={3}
           className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary resize-none"
         />
@@ -665,7 +845,7 @@ function CreateProposalSheet({
             <input
               value={amount}
               onChange={e => setAmount(e.target.value.replace(/\D/g, ""))}
-              placeholder="请求金额（USDC）"
+              placeholder={copyFor(language, "Requested amount (USDC)", "请求金额（USDC）")}
               className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
             />
           </div>
@@ -674,13 +854,13 @@ function CreateProposalSheet({
         <input
           value={evHash}
           onChange={e => setEvHash(e.target.value)}
-          placeholder="关联证据哈希（可选，来自证据库）"
+          placeholder={copyFor(language, "Linked evidence hash (optional, from vault)", "关联证据哈希（可选，来自证据库）")}
           className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
         />
 
         {!zkp.identity && (
           <p className="text-center text-xs text-primary">
-            ⚠️ 需要匿名身份才能提交。请先前往「互助 → 身份」标签。
+            {copyFor(language, "Sign up or sign in before submitting.", "请先完成注册或登录后再提交。")}
           </p>
         )}
 
@@ -689,7 +869,7 @@ function CreateProposalSheet({
           disabled={submitting || !title.trim() || !desc.trim() || !zkp.identity}
           className="w-full rounded-2xl bg-primary py-4 text-base font-bold text-primary-foreground disabled:opacity-40 active:scale-[0.98] transition-transform"
         >
-          {submitting ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : "提交提案"}
+          {submitting ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : copyFor(language, "Submit proposal", "提交提案")}
         </button>
       </motion.div>
     </motion.div>
@@ -698,11 +878,21 @@ function CreateProposalSheet({
 
 // ── Experts Tab ────────────────────────────────────────────────────────────────
 
-function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
+function ExpertsTab({
+  zkp,
+  language,
+}: {
+  zkp: ReturnType<typeof useZKPIdentity>;
+  language: AppLanguage;
+}) {
   const [holders,      setHolders]      = useState<SBTHolder[]>(() => loadLocalSBTs());
   const [claiming,     setClaiming]     = useState(false);
   const [sbtType,      setSbtType]      = useState<SBTType>("lawyer");
   const [myNullHash,   setMyNullHash]   = useState<string | null>(null);
+  const [certFileName, setCertFileName] = useState("");
+  const [credentialId, setCredentialId] = useState("");
+  const [issuerName,   setIssuerName]   = useState("");
+  const [credentialNote, setCredentialNote] = useState("");
 
   useEffect(() => {
     return subscribeSBTs((h) => {
@@ -724,19 +914,31 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
 
   const handleClaim = async () => {
     if (!zkp.identity || !myNullHash) {
-      toast("请先生成匿名身份"); return;
+      toast(copyFor(language, "Sign in before claiming a professional SBT.", "请先登录后再认领专业 SBT")); return;
+    }
+    if (!certFileName) {
+      toast(copyFor(language, "Upload a certification file for demo review first.", "请先上传认证材料用于演示审核")); return;
     }
     setClaiming(true);
     try {
+      await new Promise(resolve => setTimeout(resolve, 650));
       const holder: SBTHolder = {
-        alias:         zkp.alias ?? "匿名专家",
+        alias:         zkp.alias ?? copyFor(language, "Anonymous expert", "匿名专家"),
         nullifierHash: myNullHash,
         sbtType,
         claimedAt:     Date.now(),
       };
       claimSBT(holder);
       setHolders(prev => [...prev.filter(h => h.nullifierHash !== myNullHash), holder]);
-      toast.success(`✅ ${SBT_TYPE_CONFIG.find(s => s.id === sbtType)?.label} SBT 已认领`);
+      toast.success(copyFor(
+        language,
+        `Certification uploaded. ${sbtLabel(sbtType, language)} SBT claimed.`,
+        `认证材料已上传，${sbtLabel(sbtType, language)} SBT 已认领。`
+      ));
+      setCertFileName("");
+      setCredentialId("");
+      setIssuerName("");
+      setCredentialNote("");
     } finally { setClaiming(false); }
   };
 
@@ -746,19 +948,28 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
       <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
         <div className="flex items-center gap-2">
           <BadgeCheck className="h-4 w-4 text-yellow-400" />
-          <p className="text-sm font-bold text-foreground">SBT 专业认证</p>
+          <p className="text-sm font-bold text-foreground">
+            {copyFor(language, "Professional SBT Verification", "SBT 专业认证")}
+          </p>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          专业人士认领灵魂绑定代币（SBT）后，其投票具有「专家背书」效力。
-          SBT 不可转让，与匿名身份绑定，确保真实性。
+          {copyFor(
+            language,
+            "Professionals can claim soulbound tokens (SBTs). Their votes count as expert endorsements. SBTs are non-transferable and bound to anonymous identity for authenticity.",
+            "专业人士认领灵魂绑定代币（SBT）后，其投票具有「专家背书」效力。SBT 不可转让，与匿名身份绑定，确保真实性。"
+          )}
         </p>
       </div>
 
       {/* Expert list */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground">当前委员会成员 ({holders.length})</p>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {copyFor(language, `Committee members (${holders.length})`, `当前委员会成员 (${holders.length})`)}
+        </p>
         {holders.length === 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">暂无专家成员</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {copyFor(language, "No expert members yet", "暂无专家成员")}
+          </p>
         )}
         {holders.map((h) => {
           const config = SBT_TYPE_CONFIG.find(s => s.id === h.sbtType)!;
@@ -771,19 +982,23 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
               <span className="text-2xl">{config?.icon ?? "🎖️"}</span>
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">
-                  {h.alias}
+                  {displayAlias(h.alias, language)}
                   {isMe && (
-                    <span className="ml-2 text-[10px] font-semibold text-primary">（你）</span>
+                    <span className="ml-2 text-[10px] font-semibold text-primary">
+                      {copyFor(language, "(you)", "（你）")}
+                    </span>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">{config?.label ?? h.sbtType}</p>
+                <p className="text-xs text-muted-foreground">{sbtLabel(h.sbtType, language) || config?.label || h.sbtType}</p>
               </div>
               <div className="flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1 rounded-full bg-yellow-400/15 px-2 py-0.5">
                   <ShieldCheck className="h-3 w-3 text-yellow-400" />
-                  <span className="text-[10px] font-bold text-yellow-400">已认证</span>
+                  <span className="text-[10px] font-bold text-yellow-400">
+                    {copyFor(language, "Verified", "已认证")}
+                  </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{timeAgo(h.claimedAt)}</span>
+                <span className="text-[10px] text-muted-foreground">{timeAgo(h.claimedAt, language)}</span>
               </div>
             </div>
           );
@@ -792,12 +1007,24 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
 
       {/* Claim section */}
       {!alreadyHolding && (
-        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
-          <p className="text-sm font-bold text-foreground">认领你的专业 SBT</p>
-          <p className="text-xs text-muted-foreground">
-            持有律师执照、心理咨询证书或在相关领域有丰富经验的成员均可申请。
-            SBT 与你的匿名承诺绑定，不泄露真实身份。
-          </p>
+        <div className="rounded-[1.6rem] border border-dashed border-primary/30 bg-[linear-gradient(135deg,hsl(var(--primary)/0.10),hsl(var(--card)))] p-4 shadow-[0_14px_34px_hsl(240_70%_4%/0.12)] space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <BadgeCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-foreground">
+                {copyFor(language, "Professional SBT Claim", "专业 SBT 认领")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {copyFor(
+                  language,
+                  "Upload a license, certificate, or proof of service for a demo verification review. This is front-end only for the hackathon demo.",
+                  "上传执照、证书或服务经验证明，进入演示版认证审核。本功能目前仅用于黑客松前端演示。"
+                )}
+              </p>
+            </div>
+          </div>
 
           <div className="grid gap-2">
             {SBT_TYPE_CONFIG.map(c => (
@@ -813,29 +1040,105 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
                 <span className="text-xl">{c.icon}</span>
                 <div className="flex-1">
                   <p className={`text-sm font-bold ${sbtType === c.id ? "text-primary" : "text-foreground"}`}>
-                    {c.label}
+                    {sbtLabel(c.id, language)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{c.desc}</p>
+                  <p className="text-xs text-muted-foreground">{sbtDesc(c.id, language)}</p>
                 </div>
                 {sbtType === c.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
               </button>
             ))}
           </div>
 
+          <div className="rounded-2xl border border-primary/20 bg-card/85 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">
+                  {copyFor(language, "Certification Upload", "认证材料上传")}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {copyFor(language, "PDF, PNG, JPG accepted for the demo.", "演示支持 PDF、PNG、JPG。")}
+                </p>
+              </div>
+              {certFileName && <FileCheck2 className="h-5 w-5 shrink-0 text-sos-success" />}
+            </div>
+
+            <input
+              id="dao-cert-upload"
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(event) => setCertFileName(event.target.files?.[0]?.name ?? "")}
+            />
+            <label
+              htmlFor="dao-cert-upload"
+              className="flex min-h-[5.5rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/35 bg-primary/6 px-4 py-4 text-center transition-transform active:scale-[0.98]"
+            >
+              {certFileName ? (
+                <>
+                  <FileCheck2 className="h-6 w-6 text-sos-success" />
+                  <span className="mt-2 max-w-full truncate text-sm font-bold text-foreground">{certFileName}</span>
+                  <span className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                    {copyFor(language, "Tap to replace file", "点击更换文件")}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="h-6 w-6 text-primary" />
+                  <span className="mt-2 text-sm font-bold text-foreground">
+                    {copyFor(language, "Upload certification", "上传认证材料")}
+                  </span>
+                  <span className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                    {copyFor(language, "License, certificate, or organization letter", "执照、证书或机构证明")}
+                  </span>
+                </>
+              )}
+            </label>
+
+            <div className="grid gap-2">
+              <input
+                value={issuerName}
+                onChange={e => setIssuerName(e.target.value)}
+                placeholder={copyFor(language, "Issuing organization (optional)", "发证机构（可选）")}
+                className="w-full rounded-xl border border-border bg-background/75 px-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+              />
+              <input
+                value={credentialId}
+                onChange={e => setCredentialId(e.target.value)}
+                placeholder={copyFor(language, "License / certificate ID (optional)", "执照 / 证书编号（可选）")}
+                className="w-full rounded-xl border border-border bg-background/75 px-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+              />
+              <textarea
+                value={credentialNote}
+                onChange={e => setCredentialNote(e.target.value)}
+                rows={3}
+                placeholder={copyFor(language, "Short professional background note (optional)", "专业背景补充说明（可选）")}
+                className="w-full resize-none rounded-xl border border-border bg-background/75 px-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="rounded-xl bg-primary/8 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+              {copyFor(
+                language,
+                "Demo privacy note: this upload is not sent to a backend yet. In production, it should be reviewed by trusted DAO verifiers before the SBT is issued.",
+                "演示隐私提示：当前上传不会发送到后端。正式版本中，应由可信 DAO 审核者确认后再发放 SBT。"
+              )}
+            </div>
+          </div>
+
           {!zkp.identity ? (
             <p className="text-center text-xs text-primary">
-              需要先生成匿名身份（互助 → 身份）
+              {copyFor(language, "Sign in first to continue the SBT claim.", "请先登录后继续认领 SBT。")}
             </p>
           ) : (
             <button
               onClick={handleClaim}
-              disabled={claiming}
+              disabled={claiming || !certFileName}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 active:scale-95 transition-transform"
             >
               {claiming
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <BadgeCheck className="h-4 w-4" />}
-              认领 SBT
+              {copyFor(language, "Submit certification and claim SBT", "提交认证并认领 SBT")}
             </button>
           )}
         </div>
@@ -844,8 +1147,12 @@ function ExpertsTab({ zkp }: { zkp: ReturnType<typeof useZKPIdentity> }) {
       {alreadyHolding && (
         <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/8 p-4 text-center space-y-1">
           <BadgeCheck className="mx-auto h-6 w-6 text-yellow-400" />
-          <p className="text-sm font-bold text-foreground">你已持有专业 SBT</p>
-          <p className="text-xs text-muted-foreground">你的投票将被标记为专家背书</p>
+          <p className="text-sm font-bold text-foreground">
+            {copyFor(language, "You already hold a professional SBT", "你已持有专业 SBT")}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {copyFor(language, "Your votes will be marked as expert endorsements.", "你的投票将被标记为专家背书")}
+          </p>
         </div>
       )}
     </div>

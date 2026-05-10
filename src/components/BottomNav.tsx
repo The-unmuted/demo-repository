@@ -1,27 +1,29 @@
-import { Shield, Map, FileText, Users, Landmark } from "lucide-react";
+import { Shield, Map, HandHeart, Landmark } from "lucide-react";
 import { AppLanguage, copyFor } from "@/lib/locale";
 
+export type MainTab = "sos" | "map" | "community" | "dao";
+
 interface BottomNavProps {
-  activeTab: "sos" | "map" | "evidence" | "community" | "dao";
-  onTabChange: (tab: "sos" | "map" | "evidence" | "community" | "dao") => void;
+  activeTab: MainTab;
+  onTabChange: (tab: MainTab) => void;
   language: AppLanguage;
 }
 
 const tabs = [
   { id: "sos"       as const, english: "Help", chinese: "求助", icon: Shield   },
   { id: "map"       as const, english: "Map", chinese: "地图", icon: Map      },
-  { id: "evidence"  as const, english: "Report", chinese: "存证", icon: FileText },
-  { id: "community" as const, english: "Circle", chinese: "互助", icon: Users    },
+  { id: "community" as const, english: "Support", chinese: "支援", icon: HandHeart },
   { id: "dao"       as const, english: "DAO", chinese: "治理", icon: Landmark },
 ];
 
 export default function BottomNav({ activeTab, onTabChange, language }: BottomNavProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl"
+      aria-label={copyFor(language, "Main navigation", "主导航")}
+      className="shrink-0 border-t border-border/80 bg-card/95 shadow-[0_-14px_38px_hsl(240_70%_4%/0.28)] backdrop-blur-xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-lg">
+      <div className="mx-auto flex max-w-lg px-1.5 pt-1.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -29,12 +31,14 @@ export default function BottomNav({ activeTab, onTabChange, language }: BottomNa
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors active:scale-95 ${
-                isActive ? "text-nav-active" : "text-nav-inactive"
+              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold transition-all active:scale-95 ${
+                isActive
+                  ? "bg-primary/10 text-nav-active shadow-[0_0_20px_hsl(var(--primary)/0.12)]"
+                  : "text-nav-inactive hover:bg-secondary/70 hover:text-foreground"
               }`}
             >
               <Icon className="h-5 w-5" />
-              <span className="leading-none">
+              <span className="whitespace-nowrap leading-none">
                 {copyFor(language, tab.english, tab.chinese)}
               </span>
             </button>

@@ -2,7 +2,7 @@ import { useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, Mic, MicOff, CheckCircle2, Loader2,
-  Clock, Download, ExternalLink, ShieldCheck, Copy, ChevronDown, Wallet,
+  ArrowLeft, Clock, Download, ExternalLink, ShieldCheck, Copy, ChevronDown, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEvidenceVault } from "@/hooks/useEvidenceVault";
@@ -15,11 +15,11 @@ import { AppLanguage, copyFor } from "@/lib/locale";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
-function getMimeLabel(mime: string) {
-  if (mime.startsWith("image/")) return "图片 Image";
-  if (mime.startsWith("video/")) return "视频 Video";
-  if (mime.startsWith("audio/")) return "音频 Audio";
-  return "文件 File";
+function getMimeLabel(mime: string, language: AppLanguage) {
+  if (mime.startsWith("image/")) return copyFor(language, "Image", "图片");
+  if (mime.startsWith("video/")) return copyFor(language, "Video", "视频");
+  if (mime.startsWith("audio/")) return copyFor(language, "Audio", "音频");
+  return copyFor(language, "File", "文件");
 }
 
 function getMimeIcon(mime: string) {
@@ -29,12 +29,12 @@ function getMimeIcon(mime: string) {
   return "📄";
 }
 
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).then(() => toast.success("已复制 Copied"));
+function copyToClipboard(text: string, language: AppLanguage) {
+  navigator.clipboard.writeText(text).then(() => toast.success(copyFor(language, "Copied", "已复制")));
 }
 
-function formatTs(ts: number) {
-  return new Date(ts * 1000).toLocaleString("zh-CN");
+function formatTs(ts: number, language: AppLanguage) {
+  return new Date(ts * 1000).toLocaleString(language === "zh" ? "zh-CN" : "en-US");
 }
 
 // ── Step indicator ─────────────────────────────────────────────────────────────
@@ -90,10 +90,14 @@ function ReceiptCard({
   result,
   onDownloadKey,
   onReset,
+  onComplete,
+  language,
 }: {
   result: NonNullable<ReturnType<typeof useEvidenceVault>["result"]>;
   onDownloadKey: () => void;
   onReset: () => void;
+  onComplete?: () => void;
+  language: AppLanguage;
 }) {
   const { record } = result;
   const [expanded, setExpanded] = useState(false);
@@ -110,10 +114,10 @@ function ReceiptCard({
           <ShieldCheck className="h-5 w-5 text-sos-success" />
         </div>
         <div>
-          <p className="font-bold text-foreground">存证完成</p>
+          <p className="font-bold text-foreground">{copyFor(language, "Evidence Secured", "存证完成")}</p>
           <p className="text-xs text-muted-foreground">
-            {getMimeIcon(record.mimeType)} {getMimeLabel(record.mimeType)} ·{" "}
-            {formatBytes(record.originalSize)} · {new Date(record.createdAt).toLocaleString("zh-CN")}
+            {getMimeIcon(record.mimeType)} {getMimeLabel(record.mimeType, language)} ·{" "}
+            {formatBytes(record.originalSize)} · {new Date(record.createdAt).toLocaleString(language === "zh" ? "zh-CN" : "en-US")}
           </p>
         </div>
       </div>
@@ -124,10 +128,14 @@ function ReceiptCard({
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-sm text-primary-foreground active:scale-95 transition-transform"
       >
         <Download className="h-4 w-4" />
-        下载解密密钥 (必须保存)
+        {copyFor(language, "Download decryption key", "下载解密密钥")}
       </button>
       <p className="text-center text-xs text-muted-foreground">
-        ⚠️ 密钥丢失后无法恢复原始文件，请立即保存到安全位置
+        {copyFor(
+          language,
+          "Keep this key safe. The original file cannot be restored without it.",
+          "请妥善保存密钥。密钥丢失后无法恢复原始文件。"
+        )}
       </p>
 
       {/* Expandable details */}
@@ -135,7 +143,7 @@ function ReceiptCard({
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between text-xs text-muted-foreground"
       >
-        <span>查看存证详情</span>
+        <span>{copyFor(language, "View evidence details", "查看存证详情")}</span>
         <ChevronDown
           className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
         />
@@ -151,19 +159,22 @@ function ReceiptCard({
           >
             {/* Hash */}
             <HashRow
-              label="加密文件指纹 (SHA-256)"
+              label={copyFor(language, "Encrypted file fingerprint (SHA-256)", "加密文件指纹 (SHA-256)")}
               value={record.encryptedHash}
               short={shortenHash("0x" + record.encryptedHash.slice(0, 8) + record.encryptedHash.slice(-8))}
+              language={language}
             />
 
             {/* Arweave TX */}
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground">Arweave 永久存储</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                {copyFor(language, "Arweave permanent storage", "Arweave 永久存储")}
+              </p>
               <div className="flex items-center gap-2 rounded-lg bg-card px-3 py-2">
                 <p className="flex-1 font-mono text-xs text-foreground truncate">
                   {record.arweaveTxId.slice(0, 12)}…{record.arweaveTxId.slice(-6)}
                 </p>
-                <button onClick={() => copyToClipboard(record.arweaveTxId)}>
+                <button onClick={() => copyToClipboard(record.arweaveTxId, language)}>
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
                 <a
@@ -180,10 +191,12 @@ function ReceiptCard({
             {/* Chain TX — Solana */}
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-semibold text-muted-foreground">Solana 链上时间戳</p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {copyFor(language, "Solana on-chain timestamp", "Solana 链上时间戳")}
+                </p>
                 {record.isSimulated && (
                   <span className="rounded px-1 py-0.5 text-[10px] font-bold bg-sos-offline/15 text-sos-offline">
-                    演示模式
+                    {copyFor(language, "Demo", "演示模式")}
                   </span>
                 )}
               </div>
@@ -191,7 +204,7 @@ function ReceiptCard({
                 <p className="flex-1 font-mono text-xs text-foreground truncate">
                   {record.chainTxHash.slice(0, 8)}…{record.chainTxHash.slice(-6)}
                 </p>
-                <button onClick={() => copyToClipboard(record.chainTxHash)}>
+                <button onClick={() => copyToClipboard(record.chainTxHash, language)}>
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
                 <a
@@ -204,7 +217,7 @@ function ReceiptCard({
                 </a>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                区块时间：{formatTs(record.blockTimestamp)}
+                {copyFor(language, "Block time", "区块时间")}：{formatTs(record.blockTimestamp, language)}
               </p>
             </div>
           </motion.div>
@@ -212,22 +225,34 @@ function ReceiptCard({
       </AnimatePresence>
 
       <button
-        onClick={onReset}
+        onClick={onComplete ?? onReset}
         className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-muted-foreground active:scale-95 transition-transform"
       >
-        继续存证
+        {onComplete
+          ? copyFor(language, "Finish report", "完成报告")
+          : copyFor(language, "Continue", "继续存证")}
       </button>
     </motion.div>
   );
 }
 
-function HashRow({ label, value, short }: { label: string; value: string; short: string }) {
+function HashRow({
+  label,
+  value,
+  short,
+  language,
+}: {
+  label: string;
+  value: string;
+  short: string;
+  language: AppLanguage;
+}) {
   return (
     <div className="space-y-1">
       <p className="text-xs font-semibold text-muted-foreground">{label}</p>
       <div className="flex items-center gap-2 rounded-lg bg-card px-3 py-2">
         <p className="flex-1 font-mono text-xs text-foreground">{short}</p>
-        <button onClick={() => copyToClipboard(value)}>
+        <button onClick={() => copyToClipboard(value, language)}>
           <Copy className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
       </div>
@@ -237,7 +262,7 @@ function HashRow({ label, value, short }: { label: string; value: string; short:
 
 // ── Audio recorder ─────────────────────────────────────────────────────────────
 
-function useAudioRecorder(onBlob: (blob: Blob) => void) {
+function useAudioRecorder(onBlob: (blob: Blob) => void, language: AppLanguage) {
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
@@ -261,9 +286,9 @@ function useAudioRecorder(onBlob: (blob: Blob) => void) {
       setSeconds(0);
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
     } catch {
-      toast.error("无法访问麦克风，请检查权限");
+      toast.error(copyFor(language, "Could not access microphone. Please check permissions.", "无法访问麦克风，请检查权限"));
     }
-  }, [onBlob]);
+  }, [onBlob, language]);
 
   const stop = useCallback(() => {
     mediaRef.current?.stop();
@@ -277,14 +302,24 @@ function useAudioRecorder(onBlob: (blob: Blob) => void) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function EvidencePage({ language }: { language: AppLanguage }) {
-  const vault = useEvidenceVault();
+export default function EvidencePage({
+  language,
+  onExit,
+  onComplete,
+}: {
+  language: AppLanguage;
+  onExit?: () => void;
+  onComplete?: () => void;
+}) {
+  const vault = useEvidenceVault(language);
   const solana = useSolanaWallet();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
-  const audioRecorder = useAudioRecorder((blob) =>
-    vault.processFile(blob, "audio/webm")
+  const audioRecorder = useAudioRecorder(
+    (blob) => vault.processFile(blob, "audio/webm"),
+    language
   );
 
   const handleFileInput = useCallback(
@@ -303,20 +338,31 @@ export default function EvidencePage({ language }: { language: AppLanguage }) {
     vault.step === "anchoring";
 
   return (
-    <div className="flex flex-1 flex-col px-4 pb-20 space-y-5">
+    <div className="flex flex-1 flex-col px-4 pb-4 space-y-5">
 
       {/* ── Header ── */}
-      <div className="pt-1">
-        <h2 className="text-lg font-bold text-foreground">
-          {copyFor(language, "One-Tap Evidence", "一键存证")}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {copyFor(
-            language,
-            "Local encryption → permanent storage → on-chain timestamp",
-            "AES-256 本地加密 → Arweave 永久存储 → Solana 链上时间戳"
-          )}
-        </p>
+      <div className="flex items-start gap-3 pt-1">
+        {onExit && (
+          <button
+            onClick={onExit}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground active:scale-95"
+            aria-label={copyFor(language, "Back to help", "返回求助页")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        )}
+        <div>
+          <h2 className="text-lg font-bold text-foreground">
+            {copyFor(language, "After Report", "事后存证")}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {copyFor(
+              language,
+              "Add photo, video, or audio evidence when you are safe.",
+              "在安全后补充照片、视频或录音证据。"
+            )}
+          </p>
+        </div>
       </div>
 
       {/* ── Phantom wallet banner ── */}
@@ -428,6 +474,8 @@ export default function EvidencePage({ language }: { language: AppLanguage }) {
               result={vault.result}
               onDownloadKey={vault.downloadKey}
               onReset={vault.reset}
+              onComplete={onComplete}
+              language={language}
             />
           </motion.div>
         )}
@@ -457,35 +505,20 @@ export default function EvidencePage({ language }: { language: AppLanguage }) {
 
       {/* ── How it works ── */}
       {vault.step === "idle" && (
-        <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">
-            {copyFor(language, "How it works", "工作原理")}
-          </p>
-          <div className="space-y-1.5">
-            {[
-              ["🔒", "AES-256 加密 Encryption", "文件在设备本地加密，密钥仅你持有"],
-              ["🌐", "Arweave 存储 Storage", "加密原件永久存储于去中心化网络"],
-              ["◎", "Solana 时间戳 Timestamp", "哈希经 Memo Program 写入 Solana，不可篡改"],
-            ].map(([icon, title, desc]) => (
-              <div key={title} className="flex items-start gap-2.5 text-xs">
-                <span>{icon}</span>
-                <div>
-                  <span className="font-semibold text-foreground">{title}</span>
-                  <span className="text-muted-foreground"> — {desc}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <HowItWorksDisclosure
+          open={showHowItWorks}
+          onToggle={() => setShowHowItWorks((current) => !current)}
+          language={language}
+        />
       )}
 
       {/* ── Vault history ── */}
       {vault.history.length > 0 && (
-        <VaultHistory records={vault.history} />
+        <VaultHistory records={vault.history} language={language} />
       )}
 
       {/* ── Legacy SOS history ── */}
-      <SOSHistory />
+      <SOSHistory language={language} />
     </div>
   );
 }
@@ -512,16 +545,89 @@ function CaptureButton({
   );
 }
 
-function VaultHistory({ records }: { records: import("@/lib/localStorage").VaultRecord[] }) {
+function HowItWorksDisclosure({
+  open,
+  onToggle,
+  language,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  language: AppLanguage;
+}) {
+  const items = [
+    [
+      "🔒",
+      copyFor(language, "AES-256 encryption", "AES-256 加密"),
+      copyFor(language, "Files are encrypted locally. Only you hold the key.", "文件在设备本地加密，密钥仅你持有"),
+    ],
+    [
+      "🌐",
+      copyFor(language, "Arweave storage", "Arweave 存储"),
+      copyFor(language, "Encrypted originals are permanently stored on a decentralized network.", "加密原件永久存储于去中心化网络"),
+    ],
+    [
+      "◎",
+      copyFor(language, "Solana timestamp", "Solana 时间戳"),
+      copyFor(language, "Hashes are written through Solana Memo Program.", "哈希经 Memo Program 写入 Solana，不可篡改"),
+    ],
+  ];
+
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-bold text-foreground">存证记录 Evidence History</h3>
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="inline-flex min-h-0 items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+      >
+        {copyFor(language, "How it works", "工作原理")}
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-xl border border-border bg-card/50 px-4 py-3 space-y-2">
+              {items.map(([icon, title, desc]) => (
+                <div key={title} className="flex items-start gap-2.5 text-xs">
+                  <span>{icon}</span>
+                  <div>
+                    <span className="font-semibold text-foreground">{title}</span>
+                    <span className="text-muted-foreground"> - {desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function VaultHistory({
+  records,
+  language,
+}: {
+  records: import("@/lib/localStorage").VaultRecord[];
+  language: AppLanguage;
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-bold text-foreground">
+        {copyFor(language, "Evidence History", "存证记录")}
+      </h3>
       {records.slice(0, 10).map((r) => (
         <div key={r.id} className="rounded-xl border border-border bg-card p-3 space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-base">{getMimeIcon(r.mimeType)}</span>
             <span className="text-xs font-medium text-foreground">
-              {getMimeLabel(r.mimeType)} · {formatBytes(r.originalSize)}
+              {getMimeLabel(r.mimeType, language)} · {formatBytes(r.originalSize)}
             </span>
             <span
               className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -530,7 +636,7 @@ function VaultHistory({ records }: { records: import("@/lib/localStorage").Vault
                   : "bg-sos-success/15 text-sos-success"
               }`}
             >
-              {r.isSimulated ? "演示" : "已上链"}
+              {r.isSimulated ? copyFor(language, "Demo", "演示") : copyFor(language, "On-chain", "已上链")}
             </span>
           </div>
           <p className="font-mono text-[11px] text-muted-foreground">
@@ -538,7 +644,7 @@ function VaultHistory({ records }: { records: import("@/lib/localStorage").Vault
           </p>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <Clock className="h-3 w-3 shrink-0" />
-            <span>{new Date(r.createdAt).toLocaleString("zh-CN")}</span>
+            <span>{new Date(r.createdAt).toLocaleString(language === "zh" ? "zh-CN" : "en-US")}</span>
             {!r.isSimulated && (
               <a
                 href={r.chainExplorerUrl}
@@ -556,20 +662,24 @@ function VaultHistory({ records }: { records: import("@/lib/localStorage").Vault
   );
 }
 
-function SOSHistory() {
+function SOSHistory({ language }: { language: AppLanguage }) {
   const history = loadSOSHistory();
   if (history.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-bold text-foreground">SOS 记录 SOS History</h3>
+      <h3 className="text-sm font-bold text-foreground">
+        {copyFor(language, "SOS History", "SOS 记录")}
+      </h3>
       {history.slice(0, 5).map((rec, i) => (
         <div key={i} className="rounded-xl border border-border bg-card p-3 space-y-1">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold ${rec.status === "success" ? "text-sos-success" : "text-sos-offline"}`}>
-              {rec.status === "success" ? "✓ 已上链" : "⚠ 本地存储"}
+              {rec.status === "success"
+                ? copyFor(language, "✓ On-chain", "✓ 已上链")
+                : copyFor(language, "⚠ Saved locally", "⚠ 本地存储")}
             </span>
-            <span className="ml-auto text-[11px] text-muted-foreground">{formatTs(rec.timestamp)}</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">{formatTs(rec.timestamp, language)}</span>
           </div>
           {rec.txHash && (
             <a
@@ -589,7 +699,13 @@ function SOSHistory() {
 
 // ── Phantom wallet banner ──────────────────────────────────────────────────────
 
-function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> }) {
+function PhantomBanner({
+  solana,
+  language,
+}: {
+  solana: ReturnType<typeof useSolanaWallet>;
+  language: AppLanguage;
+}) {
   const { wallet, connect, disconnect } = solana;
 
   if (wallet.isConnected && wallet.address) {
@@ -598,7 +714,7 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
         <div className="flex items-center gap-2">
           <Wallet className="h-3.5 w-3.5 text-sos-success" />
           <span className="text-xs font-semibold text-sos-success">
-            Phantom 已连接 Connected
+            {copyFor(language, "Phantom connected", "Phantom 已连接")}
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
             {shortenSolAddress(wallet.address)}
@@ -611,7 +727,7 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
           onClick={disconnect}
           className="text-[11px] text-muted-foreground underline"
         >
-          断开 Disconnect
+          {copyFor(language, "Disconnect", "断开")}
         </button>
       </div>
     );
@@ -624,10 +740,10 @@ function PhantomBanner({ solana }: { solana: ReturnType<typeof useSolanaWallet> 
     >
       <Wallet className="h-4 w-4 text-muted-foreground" />
       {wallet.isPhantomInstalled
-        ? "连接 Phantom 钱包 Connect Phantom"
-        : "安装 Phantom 钱包 Install Phantom"}
+        ? copyFor(language, "Connect Phantom", "连接 Phantom 钱包")
+        : copyFor(language, "Install Phantom", "安装 Phantom 钱包")}
       <span className="text-xs text-muted-foreground font-normal">
-        · 未连接时演示模式运行 Demo mode when disconnected
+        {copyFor(language, "Demo mode when disconnected", "未连接时演示模式运行")}
       </span>
     </button>
   );

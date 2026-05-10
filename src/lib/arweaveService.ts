@@ -11,7 +11,8 @@
  *   return receipt.id;
  */
 
-const DB_NAME = 'herguard_vault';
+const DB_NAME = 'the_unmuted_vault';
+const LEGACY_DB_NAME = 'herguard_vault';
 const DB_VERSION = 1;
 const STORE_NAME = 'encrypted_files';
 
@@ -87,7 +88,7 @@ export async function uploadToArweave(
 export async function retrieveEncryptedFile(txId: string): Promise<Blob | null> {
   try {
     const db = await openDB();
-    const result = await new Promise<any>((resolve, reject) => {
+    const result = await new Promise<{ encryptedBlob?: Blob } | undefined>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const req = tx.objectStore(STORE_NAME).get(txId);
       req.onsuccess = () => resolve(req.result);
@@ -95,6 +96,21 @@ export async function retrieveEncryptedFile(txId: string): Promise<Blob | null> 
     });
     return result?.encryptedBlob ?? null;
   } catch {
-    return null;
+    try {
+      const legacyDb = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(LEGACY_DB_NAME, DB_VERSION);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      const legacyResult = await new Promise<{ encryptedBlob?: Blob } | undefined>((resolve, reject) => {
+        const tx = legacyDb.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get(txId);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return legacyResult?.encryptedBlob ?? null;
+    } catch {
+      return null;
+    }
   }
 }

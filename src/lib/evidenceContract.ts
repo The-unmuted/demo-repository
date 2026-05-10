@@ -41,7 +41,7 @@ interface SolanaWallet {
 }
 
 function getSolanaWallet(): SolanaWallet | null {
-  const sol = (window as any).solana;
+  const sol = window.solana;
   if (sol?.isConnected && sol?.publicKey) return sol as SolanaWallet;
   return null;
 }
@@ -95,7 +95,7 @@ async function anchorWithPhantom(
   const memo = JSON.stringify({
     h: encryptedHash.slice(0, 32), // first 128 bits of SHA-256
     a: arweaveTxId,
-    t: "hera", // product tag
+    t: "the-unmuted",
   });
 
   const instruction = new TransactionInstruction({

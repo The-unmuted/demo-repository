@@ -7,11 +7,12 @@ export interface OfflineSOSRecord {
   attemptCount: number;
 }
 
-const STORAGE_KEY = "herguard_offline_sos";
+const STORAGE_KEY = "the_unmuted_offline_sos";
+const LEGACY_STORAGE_KEY = "herguard_offline_sos";
 
 function loadOffline(): OfflineSOSRecord[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
