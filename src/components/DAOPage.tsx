@@ -154,6 +154,7 @@ export default function DAOPage({ language }: { language: AppLanguage }) {
     <div className="flex flex-1 flex-col">
       {/* Treasury header */}
       <TreasuryCard language={language} />
+      <MagicBlockPrivacyCard language={language} />
 
       {/* Inner tabs */}
       <div className="flex shrink-0 border-b border-border">
@@ -186,6 +187,79 @@ export default function DAOPage({ language }: { language: AppLanguage }) {
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
+  const pipeline = [
+    {
+      labelEn: "Delegate private review state",
+      labelZh: "委托私密审核状态",
+      valueEn: "PER session",
+      valueZh: "PER 会话",
+    },
+    {
+      labelEn: "TEE-gated expert access",
+      labelZh: "TEE 限权专家访问",
+      valueEn: "SBT reviewers",
+      valueZh: "SBT 审核者",
+    },
+    {
+      labelEn: "Commit public result only",
+      labelZh: "仅提交公开结果",
+      valueEn: "Solana settlement",
+      valueZh: "Solana 结算",
+    },
+  ];
+
+  return (
+    <div className="mx-4 mb-3 rounded-[1.35rem] border border-primary/25 bg-[radial-gradient(circle_at_top_left,hsl(320_100%_78%/0.18),transparent_34%),linear-gradient(135deg,hsl(252_42%_18%/0.94),hsl(var(--card)/0.96))] p-4 shadow-[0_18px_45px_hsl(240_70%_4%/0.18)]">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/12">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-black text-foreground">
+              {copyFor(language, "MagicBlock Private DAO Room", "MagicBlock 私密 DAO 审核室")}
+            </p>
+            <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+              Demo
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {copyFor(
+              language,
+              "Demo model: sensitive aid proposals and certification proofs enter a MagicBlock Private Ephemeral Rollup-style review room. Reviewers see only permissioned state; the DAO commits final vote and funding signals back to Solana.",
+              "演示模型：敏感救助提案与认证材料进入 MagicBlock Private Ephemeral Rollup 风格的私密审核室。审核者只能查看被授权状态；DAO 最终把投票与拨款信号提交回 Solana。"
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2">
+        {pipeline.map((item, index) => (
+          <div key={item.labelEn} className="flex items-center gap-2 rounded-2xl border border-border/80 bg-background/35 px-3 py-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[10px] font-black text-primary">
+              {index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-foreground">{copyFor(language, item.labelEn, item.labelZh)}</p>
+              <p className="truncate text-[10px] text-muted-foreground">{copyFor(language, item.valueEn, item.valueZh)}</p>
+            </div>
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-sos-success" />
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 rounded-xl bg-background/32 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+        {copyFor(
+          language,
+          "Hackathon scope: front-end simulation only. Production path would add MagicBlock delegation hooks, PER access tokens, and a commit action that settles approved aid state on Solana.",
+          "黑客松范围：当前仅为前端模拟。正式路径会加入 MagicBlock delegation hooks、PER 访问令牌，以及将审核通过的救助状态结算到 Solana 的 commit action。"
+        )}
+      </p>
     </div>
   );
 }
@@ -1121,6 +1195,15 @@ function ExpertsTab({
                 language,
                 "Demo privacy note: this upload is not sent to a backend yet. In production, it should be reviewed by trusted DAO verifiers before the SBT is issued.",
                 "演示隐私提示：当前上传不会发送到后端。正式版本中，应由可信 DAO 审核者确认后再发放 SBT。"
+              )}
+            </div>
+
+            <div className="rounded-xl border border-primary/20 bg-background/45 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+              <span className="font-bold text-primary">MagicBlock: </span>
+              {copyFor(
+                language,
+                "This demo marks the certification packet as delegated to a Private Ephemeral Rollup review room, so only approved DAO verifiers would inspect private documents while the public chain receives the final SBT result.",
+                "本 Demo 将认证包标记为委托到 Private Ephemeral Rollup 审核室：只有授权 DAO 审核者查看私密材料，公开链上只接收最终 SBT 结果。"
               )}
             </div>
           </div>

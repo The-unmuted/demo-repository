@@ -22,6 +22,7 @@
 - **Bottom tabs:** Help, Support, Alert, and DAO.
 - **Support page:** The mutual-support page keeps the supporter workflow only; the previous identity and warning sections were removed.
 - **Alert page:** The previous standalone Map / Evidence bottom entry is now Alert. The Alert page directly displays the warning map, color legend, and report counts.
+- **MagicBlock demo layer:** The DAO tab includes a front-end simulation of a MagicBlock Private Ephemeral Rollup review room for private aid and professional credential review.
 
 - **双语界面：** 中英文通过按钮切换，同一时间只展示一种语言。
 - **首次注册：** 用户首次进入需要注册，之后在本地保持登录状态。支持 Phantom 钱包签名，也支持邮箱联系 / Privy OTP。
@@ -30,6 +31,7 @@
 - **底部导航：** Help、Support、Alert、DAO。
 - **互助页面：** 互助页面只保留支援流程，原本的身份和预警区域已移除。
 - **预警页面：** 原本独立的 Map / Evidence 底部入口已调整为 Alert。预警页面直接展示地图、颜色图例和上报数量。
+- **MagicBlock 演示层：** DAO 页面加入 MagicBlock Private Ephemeral Rollup 风格的前端模拟，用于私密救助与专业认证审核。
 
 ---
 
@@ -99,11 +101,25 @@
 - DAO voting is tied to anonymous identity, reducing repeated random identities.
 - Professionals can claim SBT-style credentials for expert endorsements.
 - The professional SBT flow includes a front-end-only certification upload page for demo review.
+- The DAO tab now includes a MagicBlock Private DAO Room demo card showing how sensitive proposal details and professional certification packets could be delegated to a Private Ephemeral Rollup-style review room before final Solana settlement.
 
 - 受助者可发起法律、心理或社区支持提案。
 - DAO 投票绑定匿名身份，降低重复随机身份带来的滥用。
 - 专业人士可认领 SBT 风格认证，提供专家背书。
 - 专业 SBT 认领包含前端演示版认证材料上传页面。
+- DAO 页面现在包含 MagicBlock 私密 DAO 审核室演示卡片，展示敏感提案细节与专业认证包如何先委托到 Private Ephemeral Rollup 风格的审核室，再把最终结果结算回 Solana。
+
+### 6. MagicBlock Privacy Demo | MagicBlock 隐私演示
+
+- **What is shown now:** A front-end MagicBlock Private DAO Room in the DAO tab. It explains a three-step flow: delegate private review state, allow TEE-gated SBT reviewer access, and commit only the approved public result back to Solana.
+- **Why it matters:** Survivors should not expose raw documents, private evidence context, or professional certification uploads to a public DAO vote. MagicBlock-style Private Ephemeral Rollups give us a pitchable architecture for fast, permissioned, private review.
+- **How it can become real:** Add MagicBlock Ephemeral Rollup delegation hooks for proposal/review state, issue access tokens only to verified SBT reviewers, run review logic inside the private execution environment, then commit the final aid decision or SBT claim result to Solana.
+- **Hackathon honesty:** This repository currently demonstrates the UX and architecture only. It does not yet call a live MagicBlock rollup or TEE service.
+
+- **当前展示：** DAO 页面有一个 MagicBlock 私密 DAO 审核室前端演示。它展示三步流程：委托私密审核状态、通过 TEE 限权 SBT 审核者访问、只将审核通过后的公开结果提交回 Solana。
+- **为什么重要：** 受害者不应把原始文件、私密证据上下文或专业认证材料暴露给公开 DAO 投票。MagicBlock 风格的 Private Ephemeral Rollups 为我们提供了快速、限权、私密审核的可展示架构。
+- **如何落地：** 后续可为提案 / 审核状态加入 MagicBlock Ephemeral Rollup delegation hooks，只向已验证 SBT 审核者签发访问令牌，在私密执行环境内完成审核逻辑，再把最终救助决策或 SBT 认领结果提交到 Solana。
+- **黑客松诚实说明：** 当前仓库只演示 UX 与架构，不会调用真实 MagicBlock rollup 或 TEE 服务。
 
 ---
 
@@ -119,6 +135,7 @@
 | Encryption | Web Crypto API, AES-256-GCM |
 | P2P Demo | Gun.js for support/chat/DAO demo broadcasts |
 | Map Alerts | OpenStreetMap tiles, local alert records, color-graded zones |
+| Privacy Compute Demo | MagicBlock Private Ephemeral Rollup-style DAO review simulation |
 
 ---
 
@@ -162,11 +179,13 @@ VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 
 - Some Web3 operations intentionally have simulation fallbacks so the hackathon demo works without paid infrastructure or wallet funding.
 - Certification upload in the DAO tab is front-end-only for now; a production version should send documents to a secure review backend or privacy-preserving credential issuer.
+- MagicBlock integration is currently a visible UX/architecture simulation in the DAO tab. In production, it can be used for private DAO review rooms, expert SBT verification, survivor aid proposal review, and fast private state transitions before Solana settlement.
 - Map and support alerts include built-in demo examples for presentation purposes.
 - Private evidence keys are user-held. Losing the downloaded key bundle can make encrypted evidence unrecoverable in a production design.
 
 - 部分 Web3 操作为确保黑客松演示稳定，保留模拟回退。
 - DAO 专业认证上传目前仅为前端 Demo；正式版本应接入安全审核后端或隐私凭证签发机制。
+- MagicBlock 当前是 DAO 页面中可见的 UX / 架构模拟。正式版本可用于私密 DAO 审核室、专家 SBT 认证、受害者救助提案审核，以及在 Solana 结算前完成快速私密状态转换。
 - 地图与支援页面内置演示案例，便于评审直接理解。
 - 私密证据密钥由用户保存；正式版本中若遗失密钥，可能无法恢复加密证据。
 
