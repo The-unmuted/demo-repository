@@ -24,10 +24,6 @@ import { useZKPIdentity } from "@/hooks/useZKPIdentity";
 import { recordCommunityHelpMapAlert } from "@/lib/geoAlert";
 import { AppLanguage, copyFor } from "@/lib/locale";
 
-const LOGO_SRC = "/the-unmuted-mark.png";
-const BRAND_BANNER_EN = "secure, record, protect, speak";
-const BRAND_BANNER_ZH = "安全，记录，守护，发声";
-
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type PageView =
@@ -304,37 +300,18 @@ function HomeView({
   customAudioUrl: string | null;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-5 py-6">
-      <div className="max-w-sm text-center">
-        <img
-          src={LOGO_SRC}
-          alt="The Unmuted logo"
-          className="mx-auto mb-4 h-32 w-32 object-contain drop-shadow-[0_0_42px_hsl(var(--primary)/0.34)]"
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-5 py-6">
+      <div className="flex w-full max-w-[25rem] items-center justify-center py-4">
+        <SOSButton
+          contract={contract}
+          isWalletConnected={isWalletConnected}
+          isCorrectNetwork={isCorrectNetwork}
+          isSilent={isSilent}
+          voiceDeterrent={voiceDeterrent}
+          customAudioUrl={customAudioUrl}
+          language={language}
         />
-        <h1 className="text-3xl font-black tracking-[0.14em] text-foreground">
-          {copyFor(language, "THE UNMUTED", "非默")}
-        </h1>
-        <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-primary/90">
-          {copyFor(language, BRAND_BANNER_EN, BRAND_BANNER_ZH)}
-        </p>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {copyFor(
-            language,
-            "Reach help fast with private community support and a discreet SOS flow.",
-            "匿名发起求助，快速连接可信支援者。"
-          )}
-        </p>
       </div>
-
-      <SOSButton
-        contract={contract}
-        isWalletConnected={isWalletConnected}
-        isCorrectNetwork={isCorrectNetwork}
-        isSilent={isSilent}
-        voiceDeterrent={voiceDeterrent}
-        customAudioUrl={customAudioUrl}
-        language={language}
-      />
 
       <div className="grid w-full max-w-sm gap-3">
         <button

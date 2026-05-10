@@ -12,6 +12,7 @@ import { AppLanguage, copyFor } from "@/lib/locale";
 import { toast } from "sonner";
 
 type SOSState = "idle" | "pressing" | "loading" | "success" | "offline";
+const LOGO_SRC = "/the-unmuted-mark.png";
 
 interface SOSButtonProps {
   contract: Contract | null;
@@ -214,12 +215,19 @@ export default function SOSButton({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`relative aspect-square w-[80vw] max-w-[360px] select-none rounded-full ${bgColor} ${glowClass} transition-colors duration-500`}
+        className={`relative aspect-square w-[80vw] max-w-[360px] select-none overflow-hidden rounded-full ${bgColor} ${glowClass} transition-colors duration-500`}
         whileTap={state === "idle" ? { scale: 0.95 } : {}}
         style={{ touchAction: "none" }}
       >
+        <img
+          src={LOGO_SRC}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-70 mix-blend-normal drop-shadow-[0_0_28px_hsl(270_90%_38%/0.32)] [filter:saturate(1.45)_contrast(1.12)_brightness(1.04)]"
+        />
+
         {state === "pressing" && (
-          <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+          <svg className="absolute inset-0 z-20 h-full w-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth="3" />
             <motion.circle
               cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--foreground))" strokeWidth="3"
