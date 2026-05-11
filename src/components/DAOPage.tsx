@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, ThumbsUp, ThumbsDown, ShieldCheck, Loader2,
   CheckCircle2, Clock, Coins, ArrowLeft, ChevronRight,
-  BadgeCheck, X, UploadCloud, FileCheck2,
+  BadgeCheck, X, UploadCloud, FileCheck2, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useZKPIdentity } from "@/hooks/useZKPIdentity";
@@ -197,6 +197,7 @@ export default function DAOPage({ language }: { language: AppLanguage }) {
 }
 
 function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
+  const [openNotice, setOpenNotice] = useState<"magicblock" | "solana" | null>(null);
   const pipeline = [
     {
       labelEn: "Delegate private review state",
@@ -219,81 +220,142 @@ function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
   ];
 
   return (
-    <div className="mx-4 mb-3 rounded-[1.35rem] border border-primary/25 bg-[radial-gradient(circle_at_top_left,hsl(320_100%_78%/0.18),transparent_34%),linear-gradient(135deg,hsl(252_42%_18%/0.94),hsl(var(--card)/0.96))] p-4 shadow-[0_18px_45px_hsl(240_70%_4%/0.18)]">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/12">
-          <ShieldCheck className="h-5 w-5 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-black text-foreground">
-              {copyFor(language, "MagicBlock Private DAO Room", "MagicBlock 私密 DAO 审核室")}
-            </p>
-            <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-              Demo
-            </span>
-          </div>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {copyFor(
-              language,
-              "Demo model: sensitive aid proposals and certification proofs enter a MagicBlock Private Ephemeral Rollup-style review room. Reviewers see only permissioned state; the DAO commits final vote and funding signals back to Solana.",
-              "演示模型：敏感救助提案与认证材料进入 MagicBlock Private Ephemeral Rollup 风格的私密审核室。审核者只能查看被授权状态；DAO 最终把投票与拨款信号提交回 Solana。"
-            )}
-          </p>
-        </div>
-      </div>
+    <div className="mx-4 mb-3 grid gap-2">
+      <TechNoticeButton
+        icon={<ShieldCheck className="h-4 w-4" />}
+        title={copyFor(language, "MagicBlock Private DAO Room", "MagicBlock 私密 DAO 审核室")}
+        label={copyFor(language, "Tap to view demo privacy design", "点击查看隐私审核设计")}
+        badge="Demo"
+        open={openNotice === "magicblock"}
+        onClick={() => setOpenNotice(openNotice === "magicblock" ? null : "magicblock")}
+      >
+        <p className="text-xs leading-5 text-muted-foreground">
+          {copyFor(
+            language,
+            "Demo model: sensitive aid proposals and certification proofs enter a MagicBlock Private Ephemeral Rollup-style review room. Reviewers see only permissioned state; the DAO commits final vote and funding signals back to Solana.",
+            "演示模型：敏感救助提案与认证材料进入 MagicBlock Private Ephemeral Rollup 风格的私密审核室。审核者只能查看被授权状态；DAO 最终把投票与拨款信号提交回 Solana。"
+          )}
+        </p>
 
-      <div className="mt-3 grid gap-2">
-        {pipeline.map((item, index) => (
-          <div key={item.labelEn} className="flex items-center gap-2 rounded-2xl border border-border/80 bg-background/35 px-3 py-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[10px] font-black text-primary">
-              {index + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold text-foreground">{copyFor(language, item.labelEn, item.labelZh)}</p>
-              <p className="truncate text-[10px] text-muted-foreground">{copyFor(language, item.valueEn, item.valueZh)}</p>
+        <div className="grid gap-2">
+          {pipeline.map((item, index) => (
+            <div key={item.labelEn} className="flex items-center gap-2 rounded-2xl border border-border/80 bg-background/55 px-3 py-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[10px] font-black text-primary">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-foreground">{copyFor(language, item.labelEn, item.labelZh)}</p>
+                <p className="truncate text-[10px] text-muted-foreground">{copyFor(language, item.valueEn, item.valueZh)}</p>
+              </div>
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-sos-success" />
             </div>
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-sos-success" />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <p className="mt-3 rounded-xl bg-background/32 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-        {copyFor(
-          language,
-          "Hackathon scope: front-end simulation only. Production path would add MagicBlock delegation hooks, PER access tokens, and a commit action that settles approved aid state on Solana.",
-          "黑客松范围：当前仅为前端模拟。正式路径会加入 MagicBlock delegation hooks、PER 访问令牌，以及将审核通过的救助状态结算到 Solana 的 commit action。"
+        <p className="rounded-xl bg-primary/8 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+          {copyFor(
+            language,
+            "Hackathon scope: front-end simulation only. Production path would add MagicBlock delegation hooks, PER access tokens, and a commit action that settles approved aid state on Solana.",
+            "黑客松范围：当前仅为前端模拟。正式路径会加入 MagicBlock delegation hooks、PER 访问令牌，以及将审核通过的救助状态结算到 Solana 的 commit action。"
+          )}
+        </p>
+      </TechNoticeButton>
+
+      <TechNoticeButton
+        icon={<Coins className="h-4 w-4" />}
+        title={copyFor(language, "Live Solana Devnet program", "已部署 Solana Devnet 程序")}
+        label={copyFor(language, "Tap to view program address", "点击查看程序地址")}
+        badge="Devnet"
+        open={openNotice === "solana"}
+        onClick={() => setOpenNotice(openNotice === "solana" ? null : "solana")}
+      >
+        <div className="text-[11px] leading-5">
+          <a
+            href={`https://explorer.solana.com/address/${THE_UNMUTED_PROGRAM_ID}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="block break-all font-mono text-primary underline-offset-4 hover:underline"
+          >
+            {THE_UNMUTED_PROGRAM_ID}
+          </a>
+          <p className="mt-1 break-all text-muted-foreground">
+            {copyFor(language, "Upgrade authority", "升级权限")}
+            {": "}
+            <span className="font-mono">{THE_UNMUTED_PROGRAM_AUTHORITY}</span>
+          </p>
+          <a
+            href={`https://explorer.solana.com/tx/${THE_UNMUTED_DEPLOY_SIGNATURE}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block break-all font-mono text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+          >
+            {copyFor(language, "Deploy tx", "部署交易")}
+            {": "}
+            {THE_UNMUTED_DEPLOY_SIGNATURE}
+          </a>
+        </div>
+      </TechNoticeButton>
+    </div>
+  );
+}
+
+function TechNoticeButton({
+  icon,
+  title,
+  label,
+  badge,
+  open,
+  onClick,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  label: string;
+  badge?: string;
+  open: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-primary/20 bg-card/80 shadow-[0_10px_28px_hsl(240_70%_4%/0.08)]">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-3 py-3 text-left active:scale-[0.99]"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-black text-foreground">{title}</span>
+            {badge && (
+              <span className="rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-primary">
+                {badge}
+              </span>
+            )}
+          </span>
+          <span className="mt-0.5 block text-[11px] font-semibold text-muted-foreground">{label}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3 border-t border-border/70 px-3 pb-3 pt-3">
+              {children}
+            </div>
+          </motion.div>
         )}
-      </p>
-
-      <div className="mt-3 rounded-2xl border border-primary/20 bg-background/28 p-3 text-[11px] leading-5">
-        <p className="font-bold text-foreground">
-          {copyFor(language, "Live Solana Devnet program", "已部署 Solana Devnet 程序")}
-        </p>
-        <a
-          href={`https://explorer.solana.com/address/${THE_UNMUTED_PROGRAM_ID}?cluster=devnet`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 block break-all font-mono text-primary underline-offset-4 hover:underline"
-        >
-          {THE_UNMUTED_PROGRAM_ID}
-        </a>
-        <p className="mt-1 break-all text-muted-foreground">
-          {copyFor(language, "Upgrade authority", "升级权限")}
-          {": "}
-          <span className="font-mono">{THE_UNMUTED_PROGRAM_AUTHORITY}</span>
-        </p>
-        <a
-          href={`https://explorer.solana.com/tx/${THE_UNMUTED_DEPLOY_SIGNATURE}?cluster=devnet`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 block break-all font-mono text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-        >
-          {copyFor(language, "Deploy tx", "部署交易")}
-          {": "}
-          {THE_UNMUTED_DEPLOY_SIGNATURE}
-        </a>
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -1001,6 +1063,7 @@ function ExpertsTab({
   const [credentialId, setCredentialId] = useState("");
   const [issuerName,   setIssuerName]   = useState("");
   const [credentialNote, setCredentialNote] = useState("");
+  const [showMagicBlockClaim, setShowMagicBlockClaim] = useState(false);
 
   useEffect(() => {
     return subscribeSBTs((h) => {
@@ -1232,13 +1295,33 @@ function ExpertsTab({
               )}
             </div>
 
-            <div className="rounded-xl border border-primary/20 bg-background/45 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-              <span className="font-bold text-primary">MagicBlock: </span>
-              {copyFor(
-                language,
-                "This demo marks the certification packet as delegated to a Private Ephemeral Rollup review room, so only approved DAO verifiers would inspect private documents while the public chain receives the final SBT result.",
-                "本 Demo 将认证包标记为委托到 Private Ephemeral Rollup 审核室：只有授权 DAO 审核者查看私密材料，公开链上只接收最终 SBT 结果。"
-              )}
+            <div className="rounded-xl border border-primary/20 bg-background/45">
+              <button
+                type="button"
+                onClick={() => setShowMagicBlockClaim((current) => !current)}
+                aria-expanded={showMagicBlockClaim}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-bold text-primary"
+              >
+                <span>{copyFor(language, "MagicBlock privacy note", "MagicBlock 隐私说明")}</span>
+                <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform ${showMagicBlockClaim ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence initial={false}>
+                {showMagicBlockClaim && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden px-3 pb-3 text-[11px] leading-5 text-muted-foreground"
+                  >
+                    {copyFor(
+                      language,
+                      "This demo marks the certification packet as delegated to a Private Ephemeral Rollup review room, so only approved DAO verifiers would inspect private documents while the public chain receives the final SBT result.",
+                      "本 Demo 将认证包标记为委托到 Private Ephemeral Rollup 审核室：只有授权 DAO 审核者查看私密材料，公开链上只接收最终 SBT 结果。"
+                    )}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

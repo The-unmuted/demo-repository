@@ -365,6 +365,15 @@ export default function EvidencePage({
         </div>
       </div>
 
+      {/* ── How it works ── */}
+      {vault.step === "idle" && (
+        <HowItWorksDisclosure
+          open={showHowItWorks}
+          onToggle={() => setShowHowItWorks((current) => !current)}
+          language={language}
+        />
+      )}
+
       {/* ── Phantom wallet banner ── */}
       <PhantomBanner solana={solana} language={language} />
 
@@ -502,15 +511,6 @@ export default function EvidencePage({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── How it works ── */}
-      {vault.step === "idle" && (
-        <HowItWorksDisclosure
-          open={showHowItWorks}
-          onToggle={() => setShowHowItWorks((current) => !current)}
-          language={language}
-        />
-      )}
 
       {/* ── Vault history ── */}
       {vault.history.length > 0 && (
