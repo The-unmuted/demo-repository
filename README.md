@@ -22,7 +22,7 @@
 - **Bottom tabs:** Help, Map, Support, and DAO.
 - **Map page:** The Map page displays the warning map, color legend, report counts, user location, and map-based alert zones.
 - **Support page:** The Support page provides the supporter workflow for nearby anonymous help requests.
-- **DAO page:** The DAO page supports aid proposals, voting, professional SBT-style credentials, and a MagicBlock Private DAO Room demo layer.
+- **DAO page:** The DAO page supports aid proposals, voting, professional SBT-style credentials, and a MagicBlock PER-authenticated private DAO room.
 - **Solana Devnet program:** A minimal The Unmuted privacy-checkpoint program is deployed on Solana Devnet for the hackathon demo.
 
 - **双语界面：** 中英文通过按钮切换，同一时间只展示一种语言。
@@ -32,7 +32,7 @@
 - **底部导航：** Help、Map、Support、DAO。
 - **地图页面：** Map 页面展示预警地图、颜色图例、上报数量、用户定位和地图预警区域。
 - **支援页面：** Support 页面提供面向附近匿名求助的支援者流程。
-- **DAO 页面：** DAO 页面支持救助提案、投票、专业人士 SBT 风格认证，以及 MagicBlock 私密 DAO 审核室演示层。
+- **DAO 页面：** DAO 页面支持救助提案、投票、专业人士 SBT 风格认证，以及 MagicBlock PER 授权的私密 DAO 审核室。
 - **Solana Devnet 程序：** 为黑客松 Demo 部署了一个最小化的 The Unmuted 隐私检查点程序。
 
 ---
@@ -103,14 +103,14 @@
 - DAO voting is tied to anonymous identity, reducing repeated random identities.
 - Professionals can claim SBT-style credentials for expert endorsements.
 - The professional SBT flow includes a front-end-only certification upload page for demo review.
-- The DAO page includes a MagicBlock Private DAO Room demo card for private aid and professional credential review.
+- The DAO page includes a MagicBlock Private DAO Room with real PER client auth: it verifies the MagicBlock TEE RPC and asks Phantom to sign an auth challenge before opening an authenticated private session endpoint.
 - A minimal The Unmuted Solana Devnet program is deployed for privacy-safe DAO/evidence checkpoints. It accepts checkpoint instruction types and logs that only hashes/checkpoints should be submitted on-chain.
 
 - 受助者可发起法律、心理或社区支持提案。
 - DAO 投票绑定匿名身份，降低重复随机身份带来的滥用。
 - 专业人士可认领 SBT 风格认证，提供专家背书。
 - 专业 SBT 认领包含前端演示版认证材料上传页面。
-- DAO 页面包含 MagicBlock 私密 DAO 审核室演示卡片，用于私密救助与专业认证审核展示。
+- DAO 页面包含 MagicBlock 私密 DAO 审核室，并接入真实 PER 客户端授权：先验证 MagicBlock TEE RPC，再通过 Phantom 签名授权挑战，最后打开已授权的私密会话端点。
 - 已部署最小化 The Unmuted Solana Devnet 程序，用于隐私安全的 DAO / 存证检查点。程序接收检查点指令类型，并强调链上只应提交哈希或检查点。
 
 ### 6. Solana Devnet Deployment | Solana Devnet 部署
@@ -133,19 +133,21 @@
 - **当前功能：** Demo 版本刻意保持最小化。它接收 SOS 存证、DAO 私密审核、专业 SBT 审核等隐私安全检查点指令，并在日志中强调链上只提交哈希 / 检查点。
 - **正式路径：** 后续可替换为结构化 PDA 账户、证据哈希承诺、DAO 决策状态、SBT 签发状态，以及 MagicBlock 结算承诺。
 
-### 7. MagicBlock Privacy Demo | MagicBlock 隐私演示
+### 7. MagicBlock PER Integration | MagicBlock PER 集成
 
-- **Private DAO Room:** The DAO page presents a front-end simulation of a MagicBlock Private DAO Room.
-- **Delegated review state:** Sensitive proposal details and professional certification packets can be represented as private review state.
-- **TEE-gated reviewer access:** Verified SBT reviewers can be modeled as permissioned reviewers for private materials.
-- **Public settlement result:** The public DAO only needs the approved result, aid decision, or SBT claim outcome.
-- **Demo scope:** This repository demonstrates the UX and architecture. It does not call a live MagicBlock rollup or TEE service.
+- **TEE RPC:** The DAO page connects to MagicBlock's Devnet TEE RPC at `https://devnet-tee.magicblock.app`.
+- **TEE verification:** The app calls `verifyTeeRpcIntegrity` from `@magicblock-labs/ephemeral-rollups-sdk` before opening a private review session.
+- **Wallet auth:** The app calls `getAuthToken`; Phantom signs the MagicBlock auth challenge and receives a temporary PER token.
+- **Private session endpoint:** The app builds an authenticated TEE RPC / WebSocket endpoint for the DAO private review room.
+- **Current boundary:** The PER client auth flow is live. Full private account delegation still requires upgrading the Solana program to Anchor with MagicBlock delegation and permission CPI hooks.
+- **Production path:** Sensitive aid proposals and professional certification packets can be delegated into a PER review room, while only approved DAO results or settlement commitments are committed back to Solana.
 
-- **私密 DAO 审核室：** DAO 页面展示 MagicBlock Private DAO Room 风格的前端模拟。
-- **委托审核状态：** 敏感提案细节与专业认证材料可被表示为私密审核状态。
-- **TEE 限权审核访问：** 已验证的 SBT 审核者可被建模为私密材料的限权审核者。
-- **公开结算结果：** 公开 DAO 只需要接收审核通过后的救助决策、投票结果或 SBT 认领结果。
-- **Demo 范围：** 当前仓库展示 UX 与架构，不调用真实 MagicBlock rollup 或 TEE 服务。
+- **TEE RPC：** DAO 页面连接 MagicBlock Devnet TEE RPC：`https://devnet-tee.magicblock.app`。
+- **TEE 验证：** 应用先调用 `@magicblock-labs/ephemeral-rollups-sdk` 的 `verifyTeeRpcIntegrity`，再打开私密审核会话。
+- **钱包授权：** 应用调用 `getAuthToken`；Phantom 签名 MagicBlock 授权挑战后获得临时 PER token。
+- **私密会话端点：** 应用会生成已授权的 TEE RPC / WebSocket 端点，用于 DAO 私密审核室。
+- **当前边界：** PER 客户端授权流程已接入真实 SDK。完整私密账户 delegation 仍需要把 Solana 程序升级为带 MagicBlock delegation 与 permission CPI hooks 的 Anchor 程序。
+- **正式路径：** 敏感救助提案与专业认证材料可被委托进入 PER 审核室，公开链上只提交审核通过后的 DAO 结果或结算承诺。
 
 ---
 
@@ -161,7 +163,7 @@
 | Encryption | Web Crypto API, AES-256-GCM |
 | P2P Demo | Gun.js for support/chat/DAO demo broadcasts |
 | Map Alerts | OpenStreetMap tiles, local alert records, color-graded zones |
-| Privacy Compute Demo | MagicBlock Private Ephemeral Rollup-style DAO review simulation |
+| Privacy Compute | MagicBlock PER TEE RPC verification, Phantom auth token, private DAO review session UI |
 
 ---
 
@@ -194,7 +196,7 @@ VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 - The Map page shows purple/yellow alert grading and report counts for map-based risk awareness.
 - The Support page provides the supporter workflow for nearby anonymous requests.
 - Certification upload in the DAO tab is front-end-only for demo review.
-- The MagicBlock Private DAO Room is a front-end architecture simulation for private review flows.
+- The MagicBlock Private DAO Room now uses MagicBlock's SDK for TEE RPC verification and Phantom auth token creation. Full private account delegation still needs a follow-up Anchor/MagicBlock program upgrade.
 - The custom Solana Devnet program is live, but the current frontend still uses Memo anchoring/simulation for user-triggered evidence flows. The next integration step is wiring frontend checkpoint instructions directly into the deployed program.
 - Private evidence keys are user-held. Losing the downloaded key bundle can make encrypted evidence unrecoverable in a production design.
 
@@ -204,7 +206,7 @@ VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 - Map 页面通过紫黄颜色分级和上报数量展示地图预警。
 - Support 页面提供附近匿名求助的支援者流程。
 - DAO 专业认证上传目前为前端 Demo。
-- MagicBlock 私密 DAO 审核室是用于私密审核流程的前端架构模拟。
+- MagicBlock 私密 DAO 审核室已使用 MagicBlock SDK 完成 TEE RPC 验证与 Phantom 授权 token 创建。完整私密账户 delegation 仍需要后续升级 Anchor/MagicBlock 程序。
 - 自定义 Solana Devnet 程序已上线，但当前前端的用户触发式存证流程仍使用 Memo anchoring / 模拟回退。下一步是把前端检查点指令直接接入已部署程序。
 - 私密证据密钥由用户保存；正式版本中若遗失密钥，可能无法恢复加密证据。
 

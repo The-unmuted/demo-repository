@@ -255,14 +255,14 @@ function DemoTileMap({
               >
                 {count}
               </div>
-              <div className="absolute left-11 top-9 min-w-[8.4rem] rounded-2xl border border-white/80 bg-card/92 px-2.5 py-2 shadow-lg backdrop-blur-md">
+              <div className="absolute left-11 top-9 min-w-[8.4rem] rounded-2xl border border-primary/25 bg-[linear-gradient(135deg,rgba(255,247,252,0.96),rgba(246,236,255,0.94))] px-2.5 py-2 shadow-[0_12px_28px_rgba(84,38,130,0.22)] backdrop-blur-md">
                 <div className="flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-full ${isEmergency ? "bg-sos" : "bg-primary"}`} />
-                  <p className="truncate text-[10px] font-black text-foreground">
+                  <p className="truncate text-[10px] font-black text-primary">
                     {getReportTitle(report, language)}
                   </p>
                 </div>
-                <p className="mt-0.5 text-[9px] font-semibold text-muted-foreground">
+                <p className="mt-0.5 text-[9px] font-bold text-[#7b5aa6]">
                   {copyFor(language, `Demo cluster ${index + 1}`, `演示聚合 ${index + 1}`)}
                 </p>
               </div>
@@ -278,7 +278,7 @@ function DemoTileMap({
         <div className="relative flex items-center justify-center">
           <div className="absolute h-11 w-11 animate-pulse rounded-full bg-sos-success/20" />
           <div className="relative h-4 w-4 rounded-full border-2 border-white bg-sos-success shadow-[0_0_0_6px_hsl(145_68%_44%/0.20)]" />
-          <div className="absolute left-4 top-4 whitespace-nowrap rounded-full border border-white/80 bg-card/92 px-2 py-1 text-[9px] font-black text-sos-success shadow-md backdrop-blur">
+          <div className="absolute left-4 top-4 whitespace-nowrap rounded-full border border-sos-success/30 bg-white/92 px-2 py-1 text-[9px] font-black text-sos-success shadow-[0_8px_20px_rgba(18,119,75,0.2)] backdrop-blur">
             {copyFor(language, "You", "你的位置")}
           </div>
         </div>
@@ -348,8 +348,8 @@ export default function MapPage({ language }: MapPageProps) {
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             {copyFor(
               language,
-              "Anonymous area risk zones around you.",
-              "查看附近匿名上报统计后的区域风险。"
+              "See nearby risk after anonymous reports are grouped into safe area zones, not exact locations.",
+              "查看附近匿名上报聚合后的区域风险，不公开精确位置。"
             )}
           </p>
         </div>
@@ -376,8 +376,8 @@ export default function MapPage({ language }: MapPageProps) {
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
               {copyFor(
                 language,
-                "Demo reports use the same color legend and stay connected to real map coordinates.",
-                "演示上报使用同一颜色图例，并跟随真实地图坐标移动。"
+                "Demo reports stay connected to real map coordinates, but public view shows grouped areas only.",
+                "演示上报跟随真实地图坐标移动，但公开视图只显示聚合区域。"
               )}
             </p>
           </div>
@@ -405,7 +405,7 @@ export default function MapPage({ language }: MapPageProps) {
               {copyFor(
                 language,
                 "Location is used only for anonymous area clustering, not exact public tracking.",
-                "定位仅用于匿名区域聚合，不会公开展示精确位置。"
+                "定位仅用于匿名区域聚合，不会公开精确追踪。"
               )}
             </p>
           </div>

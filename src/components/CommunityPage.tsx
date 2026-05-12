@@ -51,7 +51,7 @@ function alertNote(alert: MapAlertRecord, language: AppLanguage) {
   }
 
   return alert.kind === "emergency"
-    ? copyFor(language, "Exact live location is available while this SOS is active.", "SOS 激活期间会显示精确实时位置。")
+    ? copyFor(language, "Time-limited SOS location is visible only while the emergency is active.", "仅在 SOS 激活期间显示限时紧急位置。")
     : copyFor(language, "Only an approximate area is shared for non-emergency support.", "非紧急支援仅共享大致区域。");
 }
 
@@ -103,8 +103,8 @@ function SupportAlertsPanel({
         title={copyFor(language, "SOS support alerts", "SOS 支援提醒")}
         description={copyFor(
           language,
-          "Emergency reports show live location for immediate response.",
-          "紧急上报会显示实时位置，方便快速响应。"
+          "Emergency reports use time-limited location for immediate response only.",
+          "紧急上报仅在响应期间使用限时位置。"
         )}
         alerts={sosAlerts}
         language={language}
@@ -308,6 +308,44 @@ function NearbyRequestCard({
       >
         {copyFor(language, "Accept request", "接受请求")}
       </button>
+    </div>
+  );
+}
+
+function SupportSafetyNotice({ language }: { language: AppLanguage }) {
+  const notes = [
+    copyFor(
+      language,
+      "Exact survivor location is not public. Community Help shows fuzzy areas only.",
+      "受助者精确位置不会公开。社区陪伴支持只显示模糊区域。"
+    ),
+    copyFor(
+      language,
+      "SOS location is time-limited and shown only for emergency response.",
+      "SOS 位置是限时的，只用于紧急响应。"
+    ),
+    copyFor(
+      language,
+      "Verified sign-in, wallet history checks, rate limits, and manual review can reduce abuse.",
+      "可通过验证登录、钱包历史检查、频率限制和人工复核降低滥用。"
+    ),
+  ];
+
+  return (
+    <div className="rounded-[1.35rem] border border-primary/14 bg-[linear-gradient(145deg,hsl(270_75%_62%/0.08),hsl(336_92%_76%/0.09),hsl(var(--card)/0.75))] px-4 py-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Lock className="h-4 w-4 text-primary" />
+        <p className="text-xs font-black text-foreground">
+          {copyFor(language, "Privacy and trust", "隐私与可信")}
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        {notes.map((note) => (
+          <p key={note} className="text-[11px] leading-5 text-muted-foreground">
+            {note}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -529,6 +567,7 @@ function SupporterTab({
       {/* Request list */}
       {isSupporter && (
         <div className="space-y-3">
+          <SupportSafetyNotice language={language} />
           <SupportAlertsPanel alerts={mapAlerts} language={language} />
 
           {requests.length > 0 && (
@@ -559,7 +598,8 @@ function SupporterTab({
           <p className="text-xs font-semibold text-muted-foreground">{copyFor(language, "Supporter notes", "成为支援者须知")}</p>
           {[
             copyFor(language, "Requesters stay anonymous.", "求助方匿名发送，你看不到对方真实身份"),
-            copyFor(language, "Only approximate areas are shown.", "仅显示大致区域，非精确位置"),
+            copyFor(language, "Community requests show approximate areas only.", "社区请求仅显示大致区域"),
+            copyFor(language, "SOS location is time-limited for emergency response.", "SOS 位置限时用于紧急响应"),
             copyFor(language, "Chats expire automatically after 2 hours.", "对话临时存在，2 小时后自动过期"),
             copyFor(language, "Your anonymous identity appears as an alias.", "你的匿名身份将作为别名显示在对话中"),
             copyFor(language, "You can leave any conversation anytime.", "随时可以退出任何对话"),

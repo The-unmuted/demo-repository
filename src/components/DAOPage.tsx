@@ -30,6 +30,13 @@ import {
   THE_UNMUTED_PROGRAM_AUTHORITY,
   THE_UNMUTED_PROGRAM_ID,
 } from "@/lib/solanaProgram";
+import {
+  connectMagicBlockPrivateSession,
+  MAGICBLOCK_TEE_RPC_URL,
+  MAGICBLOCK_TEE_VALIDATOR_ID,
+  type MagicBlockPrivateSession,
+  type MagicBlockStep,
+} from "@/lib/magicBlock";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -198,6 +205,10 @@ export default function DAOPage({ language }: { language: AppLanguage }) {
 
 function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
   const [openNotice, setOpenNotice] = useState<"magicblock" | "solana" | null>(null);
+  const [openMagicBlockDetail, setOpenMagicBlockDetail] = useState<"how" | "session" | null>(null);
+  const [magicBlockStep, setMagicBlockStep] = useState<MagicBlockStep>("idle");
+  const [magicBlockSession, setMagicBlockSession] = useState<MagicBlockPrivateSession | null>(null);
+  const [magicBlockError, setMagicBlockError] = useState("");
   const pipeline = [
     {
       labelEn: "Delegate private review state",
@@ -218,52 +229,151 @@ function MagicBlockPrivacyCard({ language }: { language: AppLanguage }) {
       valueZh: "Solana 结算",
     },
   ];
+  const magicBlockBusy =
+    magicBlockStep === "verifying" ||
+    magicBlockStep === "signing" ||
+    magicBlockStep === "connecting";
+  const magicBlockStepLabel = {
+    idle: copyFor(language, "Ready to connect", "可连接"),
+    verifying: copyFor(language, "Verifying TEE RPC", "正在验证 TEE RPC"),
+    signing: copyFor(language, "Waiting for Phantom signature", "等待 Phantom 签名"),
+    connecting: copyFor(language, "Opening private session", "正在打开私密会话"),
+    ready: copyFor(language, "Private session ready", "私密会话已就绪"),
+    error: copyFor(language, "Connection failed", "连接失败"),
+  }[magicBlockStep];
+
+  const handleMagicBlockConnect = async () => {
+    setMagicBlockError("");
+    setOpenNotice("magicblock");
+    try {
+      const session = await connectMagicBlockPrivateSession(setMagicBlockStep);
+      setMagicBlockSession(session);
+      setMagicBlockStep("ready");
+      toast.success(copyFor(
+        language,
+        "MagicBlock PER auth session is ready.",
+        "MagicBlock PER 授权会话已就绪。"
+      ));
+    } catch (error) {
+      setMagicBlockStep("error");
+      setMagicBlockError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   return (
     <div className="mx-4 mb-3 grid gap-2">
       <TechNoticeButton
         icon={<ShieldCheck className="h-4 w-4" />}
-        title={copyFor(language, "MagicBlock Private DAO Room", "MagicBlock 私密 DAO 审核室")}
-        label={copyFor(language, "Tap to view demo privacy design", "点击查看隐私审核设计")}
-        badge="Demo"
+        title={copyFor(language, "Private DAO review", "私密 DAO 审核")}
+        label={copyFor(language, "Tap for MagicBlock privacy details", "点击查看 MagicBlock 隐私细节")}
+        badge={magicBlockSession ? "TEE Ready" : "PER"}
         open={openNotice === "magicblock"}
         onClick={() => setOpenNotice(openNotice === "magicblock" ? null : "magicblock")}
       >
-        <p className="text-xs leading-5 text-muted-foreground">
-          {copyFor(
-            language,
-            "Demo model: sensitive aid proposals and certification proofs enter a MagicBlock Private Ephemeral Rollup-style review room. Reviewers see only permissioned state; the DAO commits final vote and funding signals back to Solana.",
-            "演示模型：敏感救助提案与认证材料进入 MagicBlock Private Ephemeral Rollup 风格的私密审核室。审核者只能查看被授权状态；DAO 最终把投票与拨款信号提交回 Solana。"
-          )}
-        </p>
-
-        <div className="grid gap-2">
-          {pipeline.map((item, index) => (
-            <div key={item.labelEn} className="flex items-center gap-2 rounded-2xl border border-border/80 bg-background/55 px-3 py-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[10px] font-black text-primary">
-                {index + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-foreground">{copyFor(language, item.labelEn, item.labelZh)}</p>
-                <p className="truncate text-[10px] text-muted-foreground">{copyFor(language, item.valueEn, item.valueZh)}</p>
-              </div>
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-sos-success" />
+        <div className="rounded-2xl border border-primary/20 bg-primary/8 p-3">
+          <div className="flex items-center gap-2">
+            {magicBlockBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : magicBlockSession ? (
+              <CheckCircle2 className="h-4 w-4 text-sos-success" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black text-foreground">{magicBlockStepLabel}</p>
+              <p className="mt-0.5 truncate text-[10px] font-semibold text-muted-foreground">
+                {copyFor(
+                  language,
+                  "Private review connection for sensitive DAO cases.",
+                  "用于敏感 DAO 个案的私密审核连接。"
+                )}
+              </p>
             </div>
-          ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleMagicBlockConnect}
+            disabled={magicBlockBusy}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-xs font-black text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-55"
+          >
+            {magicBlockBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {magicBlockSession
+              ? copyFor(language, "Refresh PER auth session", "刷新 PER 授权会话")
+              : copyFor(language, "Connect MagicBlock PER", "连接 MagicBlock PER")}
+          </button>
+          {magicBlockError && (
+            <p className="mt-2 rounded-xl border border-destructive/25 bg-destructive/8 px-3 py-2 text-[11px] leading-5 text-destructive">
+              {magicBlockError}
+            </p>
+          )}
         </div>
 
-        <p className="rounded-xl bg-primary/8 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-          {copyFor(
-            language,
-            "Hackathon scope: front-end simulation only. Production path would add MagicBlock delegation hooks, PER access tokens, and a commit action that settles approved aid state on Solana.",
-            "黑客松范围：当前仅为前端模拟。正式路径会加入 MagicBlock delegation hooks、PER 访问令牌，以及将审核通过的救助状态结算到 Solana 的 commit action。"
-          )}
-        </p>
+        {magicBlockSession && (
+          <MiniDisclosure
+            title={copyFor(language, "PER session proof", "PER 会话证明")}
+            open={openMagicBlockDetail === "session"}
+            onToggle={() => setOpenMagicBlockDetail(openMagicBlockDetail === "session" ? null : "session")}
+          >
+            <div className="rounded-xl border border-sos-success/20 bg-sos-success/8 px-3 py-2 text-[11px] leading-5">
+              <p className="font-bold text-sos-success">
+                {copyFor(language, "Authenticated private endpoint is ready.", "已授权的私密端点已就绪。")}
+              </p>
+              <p className="mt-1 break-all text-muted-foreground">
+                {copyFor(language, "Wallet", "钱包")}
+                {": "}
+                <span className="font-mono">{magicBlockSession.walletAddress}</span>
+              </p>
+              <p className="break-all text-muted-foreground">
+                {copyFor(language, "TEE token", "TEE 令牌")}
+                {": "}
+                <span className="font-mono">{magicBlockSession.tokenPreview}</span>
+              </p>
+              <p className="text-muted-foreground">
+                {copyFor(language, "Expires", "过期时间")}
+                {": "}
+                {new Date(magicBlockSession.expiresAt).toLocaleString(language === "zh" ? "zh-CN" : "en-US")}
+              </p>
+              <p className="break-all text-muted-foreground">
+                {copyFor(language, "TEE validator", "TEE 验证节点")}
+                {": "}
+                <span className="font-mono">{magicBlockSession.teeValidatorId}</span>
+              </p>
+            </div>
+          </MiniDisclosure>
+        )}
+
+        <MiniDisclosure
+          title={copyFor(language, "How privacy review works", "隐私审核如何运作")}
+          open={openMagicBlockDetail === "how"}
+          onToggle={() => setOpenMagicBlockDetail(openMagicBlockDetail === "how" ? null : "how")}
+        >
+          <p className="text-[11px] leading-5 text-muted-foreground">
+            {copyFor(
+              language,
+              "Sensitive review can happen in a private temporary room. The public chain only needs the final proof, not every private detail.",
+              "敏感审核可以先在临时私密空间中完成。公开链上只需要最终证明，不需要暴露每个隐私细节。"
+            )}
+          </p>
+          <div className="grid gap-2">
+            {pipeline.map((item, index) => (
+              <div key={item.labelEn} className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/55 px-3 py-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[10px] font-black text-primary">
+                  {index + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-bold text-foreground">{copyFor(language, item.labelEn, item.labelZh)}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">{copyFor(language, item.valueEn, item.valueZh)}</p>
+                </div>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-sos-success" />
+              </div>
+            ))}
+          </div>
+        </MiniDisclosure>
       </TechNoticeButton>
 
       <TechNoticeButton
         icon={<Coins className="h-4 w-4" />}
-        title={copyFor(language, "Live Solana Devnet program", "已部署 Solana Devnet 程序")}
+        title={copyFor(language, "Solana proof", "Solana 链上证明")}
         label={copyFor(language, "Tap to view program address", "点击查看程序地址")}
         badge="Devnet"
         open={openNotice === "solana"}
@@ -351,6 +461,47 @@ function TechNoticeButton({
             className="overflow-hidden"
           >
             <div className="space-y-3 border-t border-border/70 px-3 pb-3 pt-3">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function MiniDisclosure({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border/80 bg-background/40">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground"
+      >
+        <span>{title}</span>
+        <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2 px-3 pb-3">
               {children}
             </div>
           </motion.div>

@@ -123,12 +123,12 @@ function getDemoMapAlerts(lat: number, lng: number): MapAlertRecord[] {
       kind: "emergency",
       lat: lat + 0.0048,
       lng: lng - 0.0038,
-      locationLabel: "Live location shared",
+      locationLabel: "Time-limited SOS location",
       createdAt: now - 4 * 60 * 1000,
       expiresAt: now + 52 * 60 * 1000,
       source: "demo",
-      noteEn: "SOS button pressed. Exact live location stays visible until the alert is resolved.",
-      noteZh: "用户触发 SOS。精确实时位置会在警报解除前持续显示。",
+      noteEn: "SOS button pressed. Location is visible only while this emergency is active.",
+      noteZh: "用户触发 SOS。位置仅在本次紧急状态激活期间可见。",
     },
     {
       id: "demo-community-stalking",
@@ -179,12 +179,12 @@ export function recordEmergencyMapAlert(lat: number, lng: number): MapAlertRecor
     kind: "emergency",
     lat,
     lng,
-    locationLabel: "Live location shared",
+    locationLabel: "Time-limited SOS location",
     createdAt: now,
     expiresAt: now + EMERGENCY_ALERT_WINDOW_MS,
     source: "local",
-    noteEn: "SOS button pressed from this device. Exact live location is visible for emergency response.",
-    noteZh: "本设备触发 SOS。精确实时位置会用于紧急响应。",
+    noteEn: "SOS button pressed from this device. Location is visible only while this emergency is active.",
+    noteZh: "本设备触发 SOS。位置仅在本次紧急状态激活期间可见。",
   };
 
   saveMapAlerts([alert, ...loadMapAlerts()]);

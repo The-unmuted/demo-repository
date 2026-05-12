@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@magicblock-labs/ephemeral-rollups-sdk": "^0.13.0",
     "@privy-io/react-auth": "^3.23.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
