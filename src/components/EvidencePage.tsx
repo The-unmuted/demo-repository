@@ -13,6 +13,7 @@ import { shortenHash } from "@/hooks/useWallet";
 import { formatBytes } from "@/lib/evidenceCrypto";
 import { SOLANA_NETWORK } from "@/lib/evidenceContract";
 import { AppLanguage, copyFor } from "@/lib/locale";
+import { hasReportNotes, saveEncryptedReportNotes, type EncryptedReportNoteRecord } from "@/lib/reportNotesVault";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -856,6 +857,31 @@ function ReportGuidanceCard({
 }) {
   const selected = getSituationGuide(selectedSituation);
   const fields = REPORT_NOTE_FIELDS[selectedSituation];
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<EncryptedReportNoteRecord | null>(null);
+  const canSave = hasReportNotes(notes);
+
+  const handleSaveNotes = async () => {
+    if (!canSave) {
+      toast.info(copyFor(language, "Write one note first.", "请先填写至少一项内容。"));
+      return;
+    }
+
+    setSavingNotes(true);
+    try {
+      const record = await saveEncryptedReportNotes(selectedSituation, notes);
+      setSavedRecord(record);
+      toast.success(copyFor(language, "Encrypted notes saved on this device.", "填写内容已加密保存在本机。"));
+    } catch (error) {
+      if (error instanceof Error && error.message === "EMPTY_NOTES") {
+        toast.info(copyFor(language, "Write one note first.", "请先填写至少一项内容。"));
+      } else {
+        toast.error(copyFor(language, "Could not save encrypted notes.", "暂时无法加密保存内容。"));
+      }
+    } finally {
+      setSavingNotes(false);
+    }
+  };
 
   return (
     <section className="space-y-3 rounded-[1.75rem] border border-primary/16 bg-[linear-gradient(145deg,hsl(336_92%_76%/0.14),hsl(270_75%_62%/0.10),hsl(var(--card)/0.92))] p-4 shadow-[0_14px_34px_hsl(240_70%_4%/0.14)]">
@@ -957,22 +983,40 @@ function ReportGuidanceCard({
                   const nextValue = event.target.value;
                   onNotesChange((current) => ({ ...current, [field.id]: nextValue }));
                 }}
-                className="min-h-[3.1rem] w-full resize-none rounded-2xl border border-border/70 bg-background/68 px-3 py-2 text-xs leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/45"
+                className="min-h-[3.1rem] w-full resize-none rounded-2xl border border-white/80 bg-white/95 px-3 py-2 text-xs font-semibold leading-5 text-[#2d174d] caret-[#7f35b2] outline-none shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] transition-colors placeholder:text-[#a996bd] focus:border-primary/70 focus:bg-white"
                 placeholder={copyFor(language, field.placeholderEn, field.placeholderZh)}
               />
             </label>
           ))}
         </div>
 
-        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-primary/12 bg-primary/6 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
-            {copyFor(
-              language,
-              "Demo note: these notes can attach to the encrypted report receipt.",
-              "演示提示：这些备注可附加到加密报告回执中。"
-            )}
-          </span>
+        <div className="mt-3 grid gap-2">
+          <button
+            type="button"
+            onClick={handleSaveNotes}
+            disabled={savingNotes || !canSave}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,hsl(320_100%_78%),hsl(271_100%_74%))] px-4 py-2.5 text-xs font-black text-white shadow-[0_12px_26px_hsl(292_80%_42%/0.22)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {savingNotes ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            {copyFor(language, "Save encrypted notes", "加密保存填写内容")}
+          </button>
+
+          <div className="flex items-start gap-2 rounded-2xl border border-primary/12 bg-primary/6 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>
+              {savedRecord
+                ? copyFor(
+                    language,
+                    `Saved ${savedRecord.noteCount} encrypted notes on this device.`,
+                    `已在本机加密保存 ${savedRecord.noteCount} 项内容。`
+                  )
+                : copyFor(
+                    language,
+                    "Notes are encrypted before local saving and can attach to the evidence receipt.",
+                    "内容会先加密再保存在本机，也可附加到存证回执中。"
+                  )}
+            </span>
+          </div>
         </div>
       </div>
     </section>
